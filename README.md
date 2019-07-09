@@ -10,7 +10,7 @@ LunaR is an experimental high performance deferred PBR renderer written in Rust 
 - [ ] Directional + Spot + Point Light
 - [ ] Multi-Scattering BSDF
 - [ ] IBL
-- [ ] VCT Global Illumination
+- [ ] Voxel Cone Tracing GI
 - [ ] Tone Mapping
 - [ ] Area Lights
 - [ ] Deferred Adaptive Compute Shading
@@ -23,3 +23,4 @@ LunaR is an experimental high performance deferred PBR renderer written in Rust 
 - [ ] VR
 - [ ] [Dynamic Diffuse GI](https://morgan3d.github.io/articles/2019-04-01-ddgi/)
 - [ ] [Screen Space GI](https://www.in.tu-clausthal.de/fileadmin/homes/CG/data_pub/paper/SSDO_i3D09.pdf)
+- [ ] [Deep Screen Space GI](https://pdfs.semanticscholar.org/ffa0/198a99b6b7b4a903ab6a1fad470ff180944e.pdf)
