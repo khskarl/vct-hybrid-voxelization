@@ -2,16 +2,21 @@ use rendy::{
   command::{QueueId, RenderPassEncoder},
   factory::Factory,
   graph::{render::*, GraphContext, NodeBuffer, NodeImage},
+
+  memory::MemoryUsageValue,
   mesh::{AsVertex, PosColor},
   shader::{ShaderKind, SourceLanguage, StaticShaderInfo},
 };
 
 use rendy::hal;
+use rendy::hal::{pso::DescriptorPool, Device};
+
 use rendy::{
   memory::Dynamic,
   resource::{Buffer, BufferInfo, DescriptorSetLayout, Escape, Handle},
 };
 
+use std::mem::size_of;
 
 lazy_static::lazy_static! {
     static ref VERTEX: StaticShaderInfo = StaticShaderInfo::new(
@@ -33,12 +38,19 @@ lazy_static::lazy_static! {
         .with_fragment(&*FRAGMENT).unwrap();
 }
 
+pub struct UniformArgs {
+  my_uniform: f32,
+}
+
 #[derive(Debug, Default)]
 pub struct TrianglePassDesc;
 
 #[derive(Debug)]
 pub struct TrianglePass<B: hal::Backend> {
-  vertex: Escape<Buffer<B>>,
+  vertex_buffer: Escape<Buffer<B>>,
+  uniform_buffer: Escape<Buffer<B>>,
+  descriptor_pool: B::DescriptorPool,
+  static_set: B::DescriptorSet,
 }
 
 impl<B, T> SimpleGraphicsPipelineDesc<B, T> for TrianglePassDesc
@@ -47,6 +59,23 @@ where
   T: ?Sized,
 {
   type Pipeline = TrianglePass<B>;
+
+  fn layout(&self) -> Layout {
+    // Layout to update once per frame
+    let ubo_layout = SetLayout {
+      bindings: vec![hal::pso::DescriptorSetLayoutBinding {
+        binding: 0,
+        ty: hal::pso::DescriptorType::UniformBuffer,
+        count: 1,
+        stage_flags: hal::pso::ShaderStageFlags::GRAPHICS,
+        immutable_samplers: false,
+      }],
+    };
+    Layout {
+      sets: vec![ubo_layout],
+      push_constants: Vec::new(),
+    }
+  }
 
   fn vertices(
     &self,
@@ -70,17 +99,17 @@ where
     self,
     _ctx: &GraphContext<B>,
     factory: &mut Factory<B>,
-    queue: QueueId,
-    aux: &T,
+    _queue: QueueId,
+    _aux: &T,
     buffers: Vec<NodeBuffer>,
     images: Vec<NodeImage>,
     set_layouts: &[Handle<DescriptorSetLayout<B>>],
   ) -> Result<TrianglePass<B>, failure::Error> {
     assert!(buffers.is_empty());
     assert!(images.is_empty());
-    assert!(set_layouts.is_empty());
+    assert_eq!(set_layouts.len(), 1);
 
-    let mut vbuf = factory
+    let mut vertex_buffer = factory
       .create_buffer(
         BufferInfo {
           size: PosColor::vertex().stride as u64 * 3,
@@ -90,10 +119,20 @@ where
       )
       .unwrap();
 
+    let uniform_buffer = factory
+      .create_buffer(
+        BufferInfo {
+          size: size_of::<UniformArgs>() as u64,
+          usage: hal::buffer::Usage::UNIFORM,
+        },
+        MemoryUsageValue::Dynamic,
+      )
+      .unwrap();
+
     unsafe {
       factory
         .upload_visible_buffer(
-          &mut vbuf,
+          &mut vertex_buffer,
           0,
           &[
             PosColor {
@@ -112,8 +151,39 @@ where
         )
         .unwrap();
     }
+    let mut descriptor_pool = unsafe {
+      factory.create_descriptor_pool(
+        1,
+        vec![hal::pso::DescriptorRangeDesc {
+          ty: hal::pso::DescriptorType::UniformBuffer,
+          count: 1,
+        }],
+        hal::pso::DescriptorPoolCreateFlags::empty(),
+      )
+    }
+    .unwrap();
 
-    Ok(TrianglePass { vertex: vbuf })
+    let mut static_set;
+    unsafe {
+      static_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
+      factory.write_descriptor_sets(vec![hal::pso::DescriptorSetWrite {
+        set: &static_set,
+        binding: 0,
+        array_offset: 0,
+        descriptors: Some(hal::pso::Descriptor::Buffer(
+          uniform_buffer.raw(),
+          Some(0_u64)..Some(0_u64 + size_of::<UniformArgs> as u64),
+        )),
+      }]);
+    }
+
+
+    Ok(TrianglePass {
+      vertex_buffer,
+      uniform_buffer,
+      descriptor_pool,
+      static_set,
+    })
   }
 }
 
@@ -132,17 +202,28 @@ where
     index: usize,
     aux: &T,
   ) -> PrepareResult {
+    unsafe {
+      factory
+        .upload_visible_buffer(
+          &mut self.uniform_buffer,
+          0,
+          &[UniformArgs { my_uniform: 1.0 }],
+        )
+        .unwrap();
+    }
     PrepareResult::DrawReuse
   }
 
   fn draw(
     &mut self,
-    _layout: &B::PipelineLayout,
+    layout: &B::PipelineLayout,
     mut encoder: RenderPassEncoder<'_, B>,
     _index: usize,
     _aux: &T,
   ) {
-    encoder.bind_vertex_buffers(0, Some((self.vertex.raw(), 0)));
+    encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.static_set), std::iter::empty());
+
+    encoder.bind_vertex_buffers(0, Some((self.vertex_buffer.raw(), 0)));
     encoder.draw(0..3, 0..1);
   }
 

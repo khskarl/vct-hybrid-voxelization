@@ -9,6 +9,9 @@ use rendy::hal;
 mod passes;
 use passes::triangle::TrianglePass;
 
+mod scene;
+use scene::camera;
+
 #[cfg(feature = "dx12")]
 type Backend = rendy::dx12::Backend;
 #[cfg(feature = "metal")]
