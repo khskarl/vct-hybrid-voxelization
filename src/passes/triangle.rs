@@ -50,7 +50,7 @@ pub struct TrianglePass<B: hal::Backend> {
   vertex_buffer: Escape<Buffer<B>>,
   uniform_buffer: Escape<Buffer<B>>,
   descriptor_pool: B::DescriptorPool,
-  static_set: B::DescriptorSet,
+  dynamic_set: B::DescriptorSet,
 }
 
 impl<B, T> SimpleGraphicsPipelineDesc<B, T> for TrianglePassDesc
@@ -61,8 +61,7 @@ where
   type Pipeline = TrianglePass<B>;
 
   fn layout(&self) -> Layout {
-    // Layout to update once per frame
-    let ubo_layout = SetLayout {
+    let dynamic_ubo_layout = SetLayout {
       bindings: vec![hal::pso::DescriptorSetLayoutBinding {
         binding: 0,
         ty: hal::pso::DescriptorType::UniformBuffer,
@@ -71,8 +70,9 @@ where
         immutable_samplers: false,
       }],
     };
+
     Layout {
-      sets: vec![ubo_layout],
+      sets: vec![dynamic_ubo_layout],
       push_constants: Vec::new(),
     }
   }
@@ -163,11 +163,11 @@ where
     }
     .unwrap();
 
-    let mut static_set;
+    let mut dynamic_set;
     unsafe {
-      static_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
+      dynamic_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
       factory.write_descriptor_sets(vec![hal::pso::DescriptorSetWrite {
-        set: &static_set,
+        set: &dynamic_set,
         binding: 0,
         array_offset: 0,
         descriptors: Some(hal::pso::Descriptor::Buffer(
@@ -177,12 +177,11 @@ where
       }]);
     }
 
-
     Ok(TrianglePass {
       vertex_buffer,
       uniform_buffer,
       descriptor_pool,
-      static_set,
+      dynamic_set,
     })
   }
 }
@@ -221,7 +220,7 @@ where
     _index: usize,
     _aux: &T,
   ) {
-    encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.static_set), std::iter::empty());
+    encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
 
     encoder.bind_vertex_buffers(0, Some((self.vertex_buffer.raw(), 0)));
     encoder.draw(0..3, 0..1);
