@@ -38,8 +38,17 @@ lazy_static::lazy_static! {
         .with_fragment(&*FRAGMENT).unwrap();
 }
 
-pub struct UniformArgs {
-  my_uniform: f32,
+#[derive(Clone, Copy)]
+#[repr(C, align(16))]
+struct UniformArgs {
+  time: f32,
+  proj: nalgebra::Matrix4<f32>,
+  view: nalgebra::Matrix4<f32>,
+}
+
+#[derive(Default)]
+pub struct Aux {
+  pub time: f32,
 }
 
 #[derive(Debug, Default)]
@@ -53,10 +62,9 @@ pub struct TrianglePass<B: hal::Backend> {
   dynamic_set: B::DescriptorSet,
 }
 
-impl<B, T> SimpleGraphicsPipelineDesc<B, T> for TrianglePassDesc
+impl<B> SimpleGraphicsPipelineDesc<B, Aux> for TrianglePassDesc
 where
   B: hal::Backend,
-  T: ?Sized,
 {
   type Pipeline = TrianglePass<B>;
 
@@ -91,7 +99,7 @@ where
     None
   }
 
-  fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &T) -> rendy::shader::ShaderSet<B> {
+  fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Aux) -> rendy::shader::ShaderSet<B> {
     SHADERS.build(factory, Default::default()).unwrap()
   }
 
@@ -100,7 +108,7 @@ where
     _ctx: &GraphContext<B>,
     factory: &mut Factory<B>,
     _queue: QueueId,
-    _aux: &T,
+    _aux: &Aux,
     buffers: Vec<NodeBuffer>,
     images: Vec<NodeImage>,
     set_layouts: &[Handle<DescriptorSetLayout<B>>],
@@ -136,15 +144,15 @@ where
           0,
           &[
             PosColor {
-              position: [0.0, -0.5, 0.0].into(),
+              position: [0.0, -0.5, 0.1].into(),
               color: [1.0, 0.0, 0.0, 1.0].into(),
             },
             PosColor {
-              position: [0.5, 0.5, 0.0].into(),
+              position: [0.5, 0.5, 0.1].into(),
               color: [0.0, 1.0, 0.0, 1.0].into(),
             },
             PosColor {
-              position: [-0.5, 0.5, 0.0].into(),
+              position: [-0.5, 0.5, 0.1].into(),
               color: [0.0, 0.0, 1.0, 1.0].into(),
             },
           ],
@@ -186,10 +194,9 @@ where
   }
 }
 
-impl<B, T> SimpleGraphicsPipeline<B, T> for TrianglePass<B>
+impl<B> SimpleGraphicsPipeline<B, Aux> for TrianglePass<B>
 where
   B: hal::Backend,
-  T: ?Sized,
 {
   type Desc = TrianglePassDesc;
 
@@ -198,15 +205,37 @@ where
     factory: &Factory<B>,
     _queue: QueueId,
     _set_layouts: &[Handle<DescriptorSetLayout<B>>],
-    index: usize,
-    aux: &T,
+    _index: usize,
+    aux: &Aux,
   ) -> PrepareResult {
     unsafe {
       factory
         .upload_visible_buffer(
           &mut self.uniform_buffer,
           0,
-          &[UniformArgs { my_uniform: 1.0 }],
+          &[UniformArgs {
+            time: aux.time,
+            proj: {
+              let mut proj =
+                nalgebra::Perspective3::new(16.0 / 9.0, 3.1415 / 4.0, 1.0, 1000.0).to_homogeneous();
+              proj[(1, 1)] *= -1.0;
+              proj
+            },
+            view: {
+              use nalgebra::*;
+
+              let view = {
+                let eye = Point3::new(0.0, 0.0, -100.0);
+                let target = Point3::new(0.0, 0.0, 0.0);
+                let view = Isometry3::look_at_lh(&eye, &target, &Vector3::y());
+                view
+                // nalgebra::Isometry3::identity() * nalgebra::Translation3::new(10.0, 0.0, 0.0)
+              };
+
+              // view.to_homogeneous()
+              view.inverse().to_homogeneous()
+            },
+          }],
         )
         .unwrap();
     }
@@ -218,13 +247,12 @@ where
     layout: &B::PipelineLayout,
     mut encoder: RenderPassEncoder<'_, B>,
     _index: usize,
-    _aux: &T,
+    _aux: &Aux,
   ) {
     encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
-
     encoder.bind_vertex_buffers(0, Some((self.vertex_buffer.raw(), 0)));
     encoder.draw(0..3, 0..1);
   }
 
-  fn dispose(self, _factory: &mut Factory<B>, _aux: &T) {}
+  fn dispose(self, _factory: &mut Factory<B>, _aux: &Aux) {}
 }

@@ -1,8 +1,7 @@
-// extern crate nalgebra_glm as glm;
-use nalgebra_glm as glm;
+use nalgebra;
 
 pub struct Camera {
-  pub yaw: f32,
-  pub pitch: f32,
-  pub proj: glm::Mat4,
+  yaw: f32,
+  pitch: f32,
+  proj: nalgebra::Perspective3<f32>,
 }
