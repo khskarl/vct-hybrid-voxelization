@@ -46,9 +46,10 @@ struct UniformArgs {
   view: nalgebra::Matrix4<f32>,
 }
 
-#[derive(Default)]
 pub struct Aux {
   pub time: f32,
+  pub proj: nalgebra::Perspective3<f32>,
+  pub view: nalgebra::Isometry3<f32>,
 }
 
 #[derive(Debug, Default)]
@@ -216,25 +217,11 @@ where
           &[UniformArgs {
             time: aux.time,
             proj: {
-              let mut proj =
-                nalgebra::Perspective3::new(16.0 / 9.0, 3.1415 / 4.0, 1.0, 1000.0).to_homogeneous();
-              proj[(1, 1)] *= -1.0;
+              let mut proj = aux.proj.to_homogeneous();
+              // proj[(1, 1)] *= -1.0;
               proj
             },
-            view: {
-              use nalgebra::*;
-
-              let view = {
-                let eye = Point3::new(0.0, 0.0, -100.0);
-                let target = Point3::new(0.0, 0.0, 0.0);
-                let view = Isometry3::look_at_lh(&eye, &target, &Vector3::y());
-                view
-                // nalgebra::Isometry3::identity() * nalgebra::Translation3::new(10.0, 0.0, 0.0)
-              };
-
-              // view.to_homogeneous()
-              view.inverse().to_homogeneous()
-            },
+            view: aux.view.inverse().to_homogeneous(),
           }],
         )
         .unwrap();

@@ -12,6 +12,6 @@ layout(std140, set = 0, binding = 0) uniform Args {
 };
 
 void main() {
-    frag_color = vec4(color.x, color.y, mod(time, 1.0), 1.0);
-    gl_Position = vec4(pos, 1.0);
+    frag_color = vec4(color.x, color.y, ((sin(time) + 1.0) / 2.0), 1.0);
+    gl_Position = proj * view * vec4(pos, 1.0);
 }

@@ -12,7 +12,7 @@ mod passes;
 use passes::triangle::TrianglePass;
 
 mod scene;
-use scene::camera;
+use scene::camera::*;
 
 use passes::triangle;
 
@@ -73,11 +73,17 @@ fn main() {
 
     graph_builder.add_node(PresentNode::builder(&factory, surface, color).with_dependency(pass));
 
-    let mut aux = passes::triangle::Aux { time: 0.0 };
+    let mut aux = passes::triangle::Aux {
+        time: 0.0,
+        proj: nalgebra::Perspective3::new(16.0 / 9.0, 3.14 / 4.0, 0.1, 200.0),
+        view: nalgebra::Isometry3::identity(),
+    };
 
     let mut graph = graph_builder
         .build(&mut factory, &mut families, &mut aux)
         .unwrap();
+
+    let mut camera = Camera::new(nalgebra::Vector3::new(0.0, 0.0, -5.0), 0.0, 0.0);
 
     let mut should_exit = false;
     while should_exit == false {
@@ -89,7 +95,7 @@ fn main() {
                 WindowEvent::KeyboardInput {
                     input:
                         KeyboardInput {
-                            state: ElementState::Released,
+                            state: ElementState::Pressed,
                             virtual_keycode: Some(key),
                             ..
                         },
@@ -98,8 +104,18 @@ fn main() {
                     use winit::VirtualKeyCode::*;
                     match key {
                         Escape => should_exit = true,
-                        A => println!("A"),
-                        D => println!("D"),
+                        A => camera.move_right(-0.05),
+                        D => camera.move_right(0.05),
+                        S => camera.move_forward(-0.05),
+                        W => camera.move_forward(0.05),
+
+                        J => camera.rotate_right(-0.05),
+                        L => camera.rotate_right(0.05),
+                        K => camera.rotate_up(-0.05),
+                        I => camera.rotate_up(0.05),
+
+                        Z => aux.time -= 0.05,
+                        X => aux.time += 0.05,
                         _ => (),
                     }
                 }
@@ -110,6 +126,9 @@ fn main() {
             },
             _ => (),
         });
+
+        aux.proj = camera.projection();
+        aux.view = camera.view();
 
         graph.run(&mut factory, &mut families, &mut aux);
     }
