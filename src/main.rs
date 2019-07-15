@@ -1,7 +1,9 @@
 use rendy::{
     factory::{Config, Factory},
     graph::{present::PresentNode, render::*, GraphBuilder},
-    wsi::winit::{self, Event, EventsLoop, KeyboardInput, WindowBuilder, WindowEvent},
+    wsi::winit::{
+        self, ElementState, Event, EventsLoop, KeyboardInput, WindowBuilder, WindowEvent,
+    },
 };
 
 use rendy::hal;
@@ -84,6 +86,23 @@ fn main() {
         event_loop.poll_events(|event| match event {
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::CloseRequested => should_exit = true,
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            state: ElementState::Released,
+                            virtual_keycode: Some(key),
+                            ..
+                        },
+                    ..
+                } => {
+                    use winit::VirtualKeyCode::*;
+                    match key {
+                        Escape => should_exit = true,
+                        A => println!("A"),
+                        D => println!("D"),
+                        _ => (),
+                    }
+                }
                 _ => (),
             },
             Event::DeviceEvent { event, .. } => match event {
