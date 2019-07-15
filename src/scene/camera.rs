@@ -60,25 +60,3 @@ impl Camera {
     self.yaw += amount
   }
 }
-
-// {
-//   use nalgebra::*;
-
-//   let view = {
-//     let eye = Point3::new(0.0, 0.0, -100.0);
-//     let target = Point3::new(0.0, 0.0, 0.0);
-//     let view = Isometry3::look_at_lh(&eye, &target, &Vector3::y());
-//     view
-//     // nalgebra::Isometry3::identity() * nalgebra::Translation3::new(10.0, 0.0, 0.0)
-//   };
-
-//   // view.to_homogeneous()
-//   view.inverse().to_homogeneous()
-// },
-
-// {
-//   let mut proj =
-//     nalgebra::Perspective3::new(16.0 / 9.0, 3.1415 / 4.0, 1.0, 1000.0).to_homogeneous();
-//   proj[(1, 1)] *= -1.0;
-//   proj
-// }
