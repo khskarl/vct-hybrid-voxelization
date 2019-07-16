@@ -72,7 +72,7 @@ fn main() {
 
     graph_builder.add_node(PresentNode::builder(&factory, surface, color).with_dependency(pass));
 
-    let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), 0.0, 0.0);
+    let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
 
     let mut aux = passes::triangle::Aux {
         time: 0.666,
