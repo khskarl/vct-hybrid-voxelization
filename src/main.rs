@@ -6,15 +6,14 @@ use rendy::{
     },
 };
 
-use rendy::hal;
 
+use nalgebra_glm as glm;
+use rendy::hal;
 mod passes;
 use passes::triangle::TrianglePass;
 
 mod scene;
 use scene::camera::*;
-
-use passes::triangle;
 
 #[cfg(feature = "dx12")]
 type Backend = rendy::dx12::Backend;
@@ -73,17 +72,18 @@ fn main() {
 
     graph_builder.add_node(PresentNode::builder(&factory, surface, color).with_dependency(pass));
 
+    let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), 0.0, 0.0);
+
     let mut aux = passes::triangle::Aux {
-        time: 0.0,
-        proj: nalgebra::Perspective3::new(16.0 / 9.0, 3.14 / 4.0, 0.1, 200.0),
-        view: nalgebra::Isometry3::identity(),
+        time: 0.666,
+        proj: camera.projection(),
+        view: camera.view(),
     };
 
     let mut graph = graph_builder
         .build(&mut factory, &mut families, &mut aux)
         .unwrap();
 
-    let mut camera = Camera::new(nalgebra::Vector3::new(0.0, 0.0, -5.0), 0.0, 0.0);
 
     let mut should_exit = false;
     while should_exit == false {
@@ -129,6 +129,11 @@ fn main() {
 
         aux.proj = camera.projection();
         aux.view = camera.view();
+
+        println!("----------------");
+        println!("Proj: {}", aux.proj);
+        println!("View: {}", aux.view);
+
 
         graph.run(&mut factory, &mut families, &mut aux);
     }

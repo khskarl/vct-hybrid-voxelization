@@ -16,6 +16,8 @@ use rendy::{
   resource::{Buffer, BufferInfo, DescriptorSetLayout, Escape, Handle},
 };
 
+use nalgebra_glm as glm;
+
 use std::mem::size_of;
 
 lazy_static::lazy_static! {
@@ -39,17 +41,17 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Clone, Copy)]
-#[repr(C, align(16))]
+#[repr(C)]
 struct UniformArgs {
+  proj: glm::Mat4,
+  view: glm::Mat4,
   time: f32,
-  proj: nalgebra::Matrix4<f32>,
-  view: nalgebra::Matrix4<f32>,
 }
 
 pub struct Aux {
+  pub proj: glm::Mat4,
+  pub view: glm::Mat4,
   pub time: f32,
-  pub proj: nalgebra::Perspective3<f32>,
-  pub view: nalgebra::Isometry3<f32>,
 }
 
 #[derive(Debug, Default)]
@@ -215,13 +217,9 @@ where
           &mut self.uniform_buffer,
           0,
           &[UniformArgs {
+            proj: aux.proj,
+            view: glm::inverse(&aux.view),
             time: aux.time,
-            proj: {
-              let mut proj = aux.proj.to_homogeneous();
-              // proj[(1, 1)] *= -1.0;
-              proj
-            },
-            view: aux.view.inverse().to_homogeneous(),
           }],
         )
         .unwrap();

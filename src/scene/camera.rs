@@ -1,43 +1,53 @@
-use nalgebra::*;
+use nalgebra_glm as glm;
 
 pub struct Camera {
-  yaw: f32,
-  pitch: f32,
-  position: Vector3<f32>,
-  up: Vector3<f32>,
+  pub yaw: f32,
+  pub pitch: f32,
+  pub position: glm::Vec3,
 }
 
 impl Camera {
-  pub fn new(position: Vector3<f32>, yaw: f32, pitch: f32) -> Camera {
+  const UP: [f32; 3] = [0.0, 1.0, 0.0];
+
+  pub const fn new(position: glm::Vec3, yaw: f32, pitch: f32) -> Camera {
     Camera {
       yaw,
       pitch,
       position,
-      up: Vector3::y(),
     }
   }
 
-  pub fn projection(&self) -> Perspective3<f32> {
-    Perspective3::new(16.0 / 9.0, 3.1415 / 4.0, 1.0, 1000.0)
+  pub fn projection(&self) -> glm::Mat4 {
+    glm::perspective_rh(16.0 / 9.0, f32::to_radians(65.0), 0.01, 1000.0)
   }
 
-  pub fn view(&self) -> Isometry3<f32> {
-    let rotation = UnitQuaternion::from_euler_angles(0.0, self.pitch, self.yaw);
-    let translation = Translation3::from(self.position);
-
-    Isometry3::from_parts(translation, rotation)
+  pub fn view(&self) -> glm::Mat4 {
+    glm::look_at_rh(
+      &self.position,
+      &(self.position + self.forward()),
+      &self.up().normalize(),
+    )
   }
 
-  pub fn up(&self) -> Vector3<f32> {
-    Vector3::y()
+  pub fn up(&self) -> glm::Vec3 {
+    glm::make_vec3(&Self::UP)
   }
 
-  pub fn right(&self) -> Vector3<f32> {
-    Vector3::x()
+  pub fn right(&self) -> glm::Vec3 {
+    glm::cross::<f32, glm::U3>(&self.forward(), &self.up()).normalize()
   }
 
-  pub fn forward(&self) -> Vector3<f32> {
-    Vector3::z()
+  pub fn forward(&self) -> glm::Vec3 {
+    // let pitch_rad = f32::to_radians(self.pitch);
+    // let yaw_rad = f32::to_radians(self.yaw);
+    let pitch_rad = (self.pitch);
+    let yaw_rad = (self.yaw);
+
+    glm::make_vec3(&[
+      yaw_rad.sin() * pitch_rad.cos(),
+      pitch_rad.sin(),
+      yaw_rad.cos() * pitch_rad.cos(),
+    ])
   }
 
   pub fn move_right(&mut self, amount: f32) {
@@ -58,5 +68,13 @@ impl Camera {
 
   pub fn rotate_right(&mut self, amount: f32) {
     self.yaw += amount
+  }
+
+  pub fn near(&self) -> f32 {
+    (self.projection()[(2, 3)] / (self.projection()[(2, 2)] - 1.0))
+  }
+
+  pub fn far(&self) -> f32 {
+    ((self.projection()[(2, 3)]) / (self.projection()[(2, 2)] + 1.0))
   }
 }
