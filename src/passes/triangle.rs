@@ -217,8 +217,13 @@ where
           &mut self.uniform_buffer,
           0,
           &[UniformArgs {
-            proj: aux.proj,
-            view: glm::inverse(&aux.view),
+            proj: {
+              let mut proj = aux.proj;
+              proj[(0, 0)] *= -1.0;
+              proj[(1, 1)] *= -1.0;
+              proj
+            },
+            view: aux.view,
             time: aux.time,
           }],
         )

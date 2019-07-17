@@ -34,7 +34,7 @@ impl Camera {
   }
 
   pub fn right(&self) -> glm::Vec3 {
-    glm::cross::<f32, glm::U3>(&self.forward(), &self.up()).normalize()
+    glm::cross::<f32, glm::U3>(&self.up(), &self.forward()).normalize()
   }
 
   pub fn forward(&self) -> glm::Vec3 {

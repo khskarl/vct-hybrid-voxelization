@@ -133,6 +133,7 @@ fn main() {
         println!("----------------");
         println!("Proj: {}", aux.proj);
         println!("View: {}", aux.view);
+        println!("Forward: {}", camera.forward());
 
 
         graph.run(&mut factory, &mut families, &mut aux);
