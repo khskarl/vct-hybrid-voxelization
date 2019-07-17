@@ -1,3 +1,5 @@
+#![feature(duration_float)]
+
 use rendy::{
     factory::{Config, Factory},
     graph::{present::PresentNode, render::*, GraphBuilder},
@@ -15,6 +17,8 @@ use passes::triangle::TrianglePass;
 mod scene;
 use scene::camera::*;
 
+use std::time::Instant;
+
 #[cfg(feature = "dx12")]
 type Backend = rendy::dx12::Backend;
 #[cfg(feature = "metal")]
@@ -29,8 +33,11 @@ fn main() {
     Ok(())
 }
 
+
 #[cfg(any(feature = "dx12", feature = "metal", feature = "vulkan"))]
 fn main() {
+    const WINDOW_TITLE: &str = "Lunar Renderer";
+
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Warn)
         .filter_module("hey you", log::LevelFilter::Trace)
@@ -39,7 +46,7 @@ fn main() {
     let mut event_loop = EventsLoop::new();
 
     let window = WindowBuilder::new()
-        .with_title("Lunar Renderer")
+        .with_title(WINDOW_TITLE)
         .with_dimensions(winit::dpi::LogicalSize::new(800.0, 600.0))
         .build(&event_loop)
         .unwrap();
@@ -84,9 +91,11 @@ fn main() {
         .build(&mut factory, &mut families, &mut aux)
         .unwrap();
 
-
+    let target_dt = 0.01666666666;
     let mut should_exit = false;
     while should_exit == false {
+        let start_frame_time = Instant::now();
+
         factory.maintain(&mut families);
 
         event_loop.poll_events(|event| match event {
@@ -102,20 +111,24 @@ fn main() {
                     ..
                 } => {
                     use winit::VirtualKeyCode::*;
+
+                    let dt = target_dt;
+                    let move_rate = 5.0; // m/s
+                    let rotation_rate = 60.0; // Degrees/s
                     match key {
                         Escape => should_exit = true,
-                        A => camera.move_right(-0.05),
-                        D => camera.move_right(0.05),
-                        S => camera.move_forward(-0.05),
-                        W => camera.move_forward(0.05),
+                        A => camera.move_right(-move_rate * dt),
+                        D => camera.move_right(move_rate * dt),
+                        S => camera.move_forward(-move_rate * dt),
+                        W => camera.move_forward(move_rate * dt),
 
-                        J => camera.rotate_right(-0.05),
-                        L => camera.rotate_right(0.05),
-                        K => camera.rotate_up(-0.05),
-                        I => camera.rotate_up(0.05),
+                        J => camera.rotate_right(-rotation_rate * dt),
+                        L => camera.rotate_right(rotation_rate * dt),
+                        K => camera.rotate_up(-rotation_rate * dt),
+                        I => camera.rotate_up(rotation_rate * dt),
 
-                        Z => aux.time -= 0.05,
-                        X => aux.time += 0.05,
+                        Z => aux.time -= 0.05 * dt,
+                        X => aux.time += 0.05 * dt,
                         _ => (),
                     }
                 }
@@ -130,13 +143,15 @@ fn main() {
         aux.proj = camera.projection();
         aux.view = camera.view();
 
-        println!("----------------");
-        println!("Proj: {}", aux.proj);
-        println!("View: {}", aux.view);
-        println!("Forward: {}", camera.forward());
-
+        // println!("----------------");
+        // println!("Proj: {}", aux.proj);
+        // println!("View: {}", aux.view);
+        // println!("Forward: {}", camera.forward());
 
         graph.run(&mut factory, &mut families, &mut aux);
+
+        let dt = Instant::now().duration_since(start_frame_time).as_secs_f32();
+        window.set_title(&format!("{} | {:.6}", WINDOW_TITLE, dt));
     }
 
     graph.dispose(&mut factory, &mut aux);

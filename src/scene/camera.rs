@@ -38,10 +38,8 @@ impl Camera {
   }
 
   pub fn forward(&self) -> glm::Vec3 {
-    // let pitch_rad = f32::to_radians(self.pitch);
-    // let yaw_rad = f32::to_radians(self.yaw);
-    let pitch_rad = (self.pitch);
-    let yaw_rad = (self.yaw);
+    let pitch_rad = f32::to_radians(self.pitch);
+    let yaw_rad = f32::to_radians(self.yaw);
 
     glm::make_vec3(&[
       yaw_rad.sin() * pitch_rad.cos(),
