@@ -101,10 +101,6 @@ where
 		vec![PosColor::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
 	}
 
-	fn depth_stencil(&self) -> Option<hal::pso::DepthStencilDesc> {
-		None
-	}
-
 	fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Aux) -> rendy::shader::ShaderSet<B> {
 		SHADERS.build(factory, Default::default()).unwrap()
 	}

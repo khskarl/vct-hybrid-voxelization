@@ -66,10 +66,20 @@ fn main() {
 		)),
 	);
 
+	let depth = graph_builder.create_image(
+		hal::image::Kind::D2(size.width as u32, size.height as u32, 1, 1),
+		1,
+		hal::format::Format::D32Sfloat,
+		Some(hal::command::ClearValue::DepthStencil(
+			hal::command::ClearDepthStencil(1.0, 0),
+		)),
+	);
+
 	let pass = graph_builder.add_node(
 		TrianglePass::builder()
 			.into_subpass()
 			.with_color(color)
+			.with_depth_stencil(depth)
 			.into_pass(),
 	);
 
