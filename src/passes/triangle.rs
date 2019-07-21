@@ -2,9 +2,8 @@ use rendy::{
   command::{QueueId, RenderPassEncoder},
   factory::Factory,
   graph::{render::*, GraphContext, NodeBuffer, NodeImage},
-
   memory::MemoryUsageValue,
-  mesh::{AsVertex, PosColor},
+  mesh::{AsVertex, Mesh, PosColor},
   shader::{ShaderKind, SourceLanguage, StaticShaderInfo},
 };
 
@@ -18,15 +17,20 @@ use rendy::{
 
 use nalgebra_glm as glm;
 
+use genmesh::{
+  generators::{IndexedPolygon, SharedVertex},
+  Triangulate,
+};
+
 use std::mem::size_of;
 
 lazy_static::lazy_static! {
-    static ref VERTEX: StaticShaderInfo = StaticShaderInfo::new(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.vs"),
-        ShaderKind::Vertex,
-        SourceLanguage::GLSL,
-        "main",
-    );
+  static ref VERTEX: StaticShaderInfo = StaticShaderInfo::new(
+    concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.vs"),
+    ShaderKind::Vertex,
+    SourceLanguage::GLSL,
+    "main",
+  );
 
     static ref FRAGMENT: StaticShaderInfo = StaticShaderInfo::new(
         concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.fs"),
@@ -63,6 +67,7 @@ pub struct TrianglePass<B: hal::Backend> {
   uniform_buffer: Escape<Buffer<B>>,
   descriptor_pool: B::DescriptorPool,
   dynamic_set: B::DescriptorSet,
+  mesh: Mesh<B>,
 }
 
 impl<B> SimpleGraphicsPipelineDesc<B, Aux> for TrianglePassDesc
@@ -110,7 +115,7 @@ where
     self,
     _ctx: &GraphContext<B>,
     factory: &mut Factory<B>,
-    _queue: QueueId,
+    queue: QueueId,
     _aux: &Aux,
     buffers: Vec<NodeBuffer>,
     images: Vec<NodeImage>,
@@ -140,28 +145,30 @@ where
       )
       .unwrap();
 
-    unsafe {
-      factory
-        .upload_visible_buffer(
-          &mut vertex_buffer,
-          0,
-          &[
-            PosColor {
-              position: [0.0, -0.5, 0.1].into(),
-              color: [1.0, 0.0, 0.0, 1.0].into(),
-            },
-            PosColor {
-              position: [0.5, 0.5, 0.1].into(),
-              color: [0.0, 1.0, 0.0, 1.0].into(),
-            },
-            PosColor {
-              position: [-0.5, 0.5, 0.1].into(),
-              color: [0.0, 0.0, 1.0, 1.0].into(),
-            },
-          ],
-        )
-        .unwrap();
-    }
+    let cube_generator = genmesh::generators::Cube::new();
+    let cube_indices: Vec<_> =
+      genmesh::Vertices::vertices(cube_generator.indexed_polygon_iter().triangulate())
+        .map(|i| i as u32)
+        .collect();
+    let cube_vertices: Vec<_> = cube_generator
+      .shared_vertex_iter()
+      .map(|v| {
+        let pos = v.pos;
+        let color = [pos.x, pos.y, pos.z, 1.0];
+
+        PosColor {
+          position: pos.into(),
+          color: color.into(),
+        }
+      })
+      .collect();
+
+    let cube_mesh = Mesh::<B>::builder()
+      .with_indices(&cube_indices[..])
+      .with_vertices(&cube_vertices[..])
+      .build(queue, factory)
+      .unwrap();
+
     let mut descriptor_pool = unsafe {
       factory.create_descriptor_pool(
         1,
@@ -193,6 +200,7 @@ where
       uniform_buffer,
       descriptor_pool,
       dynamic_set,
+      mesh: cube_mesh,
     })
   }
 }
@@ -234,14 +242,20 @@ where
 
   fn draw(
     &mut self,
+
     layout: &B::PipelineLayout,
     mut encoder: RenderPassEncoder<'_, B>,
     _index: usize,
     _aux: &Aux,
   ) {
     encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
-    encoder.bind_vertex_buffers(0, Some((self.vertex_buffer.raw(), 0)));
-    encoder.draw(0..3, 0..1);
+
+    assert!(self
+      .mesh
+      .bind(0, &[PosColor::vertex()], &mut encoder)
+      .is_ok());
+
+    encoder.draw_indexed(0..self.mesh.len(), 0, 0..1);
   }
 
   fn dispose(self, _factory: &mut Factory<B>, _aux: &Aux) {}
