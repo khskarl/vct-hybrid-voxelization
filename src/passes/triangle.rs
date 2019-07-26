@@ -3,7 +3,7 @@ use rendy::{
 	factory::Factory,
 	graph::{render::*, GraphContext, NodeBuffer, NodeImage},
 	memory::MemoryUsageValue,
-	mesh::{AsVertex, Mesh, PosColor},
+	mesh::{AsVertex, Mesh, PosTex},
 	shader::{ShaderKind, SourceLanguage, StaticShaderInfo},
 };
 
@@ -31,16 +31,16 @@ lazy_static::lazy_static! {
 		"main",
 	);
 
-		static ref FRAGMENT: StaticShaderInfo = StaticShaderInfo::new(
-				concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.fs"),
-				ShaderKind::Fragment,
-				SourceLanguage::GLSL,
-				"main",
-		);
+	static ref FRAGMENT: StaticShaderInfo = StaticShaderInfo::new(
+		concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.fs"),
+		ShaderKind::Fragment,
+		SourceLanguage::GLSL,
+		"main",
+	);
 
-		static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
-				.with_vertex(&*VERTEX).unwrap()
-				.with_fragment(&*FRAGMENT).unwrap();
+	static ref SHADERS: rendy::shader::ShaderSetBuilder = rendy::shader::ShaderSetBuilder::default()
+		.with_vertex(&*VERTEX).unwrap()
+		.with_fragment(&*FRAGMENT).unwrap();
 }
 
 #[derive(Clone, Copy)]
@@ -98,7 +98,7 @@ where
 		hal::pso::ElemStride,
 		hal::pso::VertexInputRate,
 	)> {
-		vec![PosColor::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
+		vec![PosTex::vertex().gfx_vertex_input_desc(hal::pso::VertexInputRate::Vertex)]
 	}
 
 	fn load_shader_set(&self, factory: &mut Factory<B>, _aux: &Aux) -> rendy::shader::ShaderSet<B> {
@@ -138,11 +138,11 @@ where
 			.shared_vertex_iter()
 			.map(|v| {
 				let pos = v.pos;
-				let color = [pos.x, pos.y, pos.z, 1.0];
+				let tex_coords = [pos.x, pos.y + pos.z];
 
-				PosColor {
+				PosTex {
 					position: pos.into(),
-					color: color.into(),
+					tex_coord: tex_coords.into(),
 				}
 			})
 			.collect();
@@ -237,7 +237,7 @@ where
 
 		assert!(self
 			.mesh
-			.bind(0, &[PosColor::vertex()], &mut encoder)
+			.bind(0, &[PosTex::vertex()], &mut encoder)
 			.is_ok());
 
 		unsafe {

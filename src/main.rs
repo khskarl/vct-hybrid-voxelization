@@ -93,18 +93,20 @@ fn main() {
 		view: camera.view(),
 	};
 
-	let path = std::path::Path::new("./texture.png");
-	let tex_file = std::fs::File::open(
-        &path,
-    ).unwrap();
+	// let path = std::path::Path::new("./assets/textures/ground_color.png");
+	// let tex_file = std::fs::File::open(&path).unwrap();
 
-	let texture = rendy::texture::image::load_from_image(
-        std::io::BufReader::new(tex_file),
-        rendy::texture::image::ImageTextureConfig {
-            repr: rendy::texture::image::Repr::Float,
-            ..Default::default()
-        },
-    ).unwrap();
+	// let texture = {
+	// 	use rendy::texture::image;
+
+	// 	image::load_from_image(
+	// 		std::io::BufReader::new(tex_file),
+	// 		image::ImageTextureConfig {
+	// 			repr: image::Repr::Float,
+	// 			..Default::default()
+	// 		},
+	// 	).unwrap()
+	// };
 
 	let mut graph = graph_builder
 		.build(&mut factory, &mut families, &mut aux)
