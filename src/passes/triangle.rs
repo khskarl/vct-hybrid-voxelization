@@ -231,14 +231,18 @@ where
 		_index: usize,
 		_aux: &Aux,
 	) {
-		encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
+		unsafe {
+			encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
+		}
 
 		assert!(self
 			.mesh
 			.bind(0, &[PosColor::vertex()], &mut encoder)
 			.is_ok());
 
-		encoder.draw_indexed(0..self.mesh.len(), 0, 0..1);
+		unsafe {
+			encoder.draw_indexed(0..self.mesh.len(), 0, 0..1);
+		}
 	}
 
 	fn dispose(self, _factory: &mut Factory<B>, _aux: &Aux) {}

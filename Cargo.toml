@@ -11,10 +11,13 @@ dx12 = ["rendy/dx12"]
 vulkan = ["rendy/vulkan"]
 
 [dependencies]
-rendy = "0.2"
 lazy_static = "1.3.0"
 env_logger = "0.6.1"
 log = "0.4.6"
 failure = "0.1.5"
 nalgebra-glm = "0.4.0"
 genmesh = "0.6.2"
+
+[dependencies.rendy]
+version = "0.3"
+features = ["texture-image"]
