@@ -5,6 +5,7 @@ use rendy::{
 	memory::MemoryUsageValue,
 	mesh::{AsVertex, Mesh, PosTex},
 	shader::{ShaderKind, SourceLanguage, StaticShaderInfo},
+	texture::{pixel::Rgba8Srgb, Texture, TextureBuilder},
 };
 
 use rendy::hal;
@@ -20,6 +21,8 @@ use genmesh::{
 	generators::{IndexedPolygon, SharedVertex},
 	Triangulate,
 };
+
+use image;
 
 use std::mem::size_of;
 
@@ -138,7 +141,7 @@ where
 			.shared_vertex_iter()
 			.map(|v| {
 				let pos = v.pos;
-				let tex_coords = [pos.x, pos.y + pos.z];
+				let tex_coords = [pos.x, pos.y.max(pos.z)];
 
 				PosTex {
 					position: pos.into(),
@@ -152,6 +155,24 @@ where
 			.with_vertices(&cube_vertices[..])
 			.build(queue, factory)
 			.unwrap();
+
+			let cube_tex_bytes = include_bytes!("../../assets/textures/ground_color.jpg");
+			let cube_tex_img = image::load_from_memory(&cube_tex_bytes[..])
+				.unwrap()
+				.to_rgba();
+
+			let (w, h) = cube_tex_img.dimensions();
+			let cube_tex_image_data: Vec<Rgba8Srgb> = cube_tex_img
+				.pixels()
+				.map(|p| Rgba8Srgb { repr: p })
+				.collect::<_>();
+
+			let cube_tex_builder = TextureBuilder::new()
+				.with_kind(hal::image::Kind::D2(w, h, 1, 1))
+				.with_view_kind(hal::image::ViewKind::D2)
+				.with_data_width(w)
+				.with_data_height(h)
+				.with_data(&cube_tex_image_data);
 
 		let mut descriptor_pool = unsafe {
 			factory.create_descriptor_pool(
