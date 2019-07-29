@@ -15,6 +15,7 @@ use rendy::{
 	resource::{Buffer, BufferInfo, DescriptorSetLayout, Escape, Handle},
 };
 
+
 use nalgebra_glm as glm;
 
 use genmesh::{
@@ -23,6 +24,8 @@ use genmesh::{
 };
 
 use image;
+use image::Pixel;
+// use image::buffer::Pixel;
 
 use std::mem::size_of;
 
@@ -164,7 +167,11 @@ where
 			let (w, h) = cube_tex_img.dimensions();
 			let cube_tex_image_data: Vec<Rgba8Srgb> = cube_tex_img
 				.pixels()
-				.map(|p| Rgba8Srgb { repr: p })
+				.map(|p| {
+						use std::convert::TryInto;
+						Rgba8Srgb { repr: p.channels().try_into().expect("slice with incorrect length") }
+					}
+				)
 				.collect::<_>();
 
 			let cube_tex_builder = TextureBuilder::new()
