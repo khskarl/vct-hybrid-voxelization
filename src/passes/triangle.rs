@@ -1,6 +1,6 @@
 use rendy::{
 	command::{QueueId, RenderPassEncoder},
-	factory::Factory,
+	factory::{Factory, ImageState},
 	graph::{render::*, GraphContext, NodeBuffer, NodeImage},
 	memory::MemoryUsageValue,
 	mesh::{AsVertex, Mesh, PosTex},
@@ -72,6 +72,7 @@ pub struct TrianglePass<B: hal::Backend> {
 	descriptor_pool: B::DescriptorPool,
 	dynamic_set: B::DescriptorSet,
 	mesh: Mesh<B>,
+	texture: Texture<B>,
 }
 
 impl<B> SimpleGraphicsPipelineDesc<B, Aux> for TrianglePassDesc
@@ -82,13 +83,29 @@ where
 
 	fn layout(&self) -> Layout {
 		let dynamic_ubo_layout = SetLayout {
-			bindings: vec![hal::pso::DescriptorSetLayoutBinding {
-				binding: 0,
-				ty: hal::pso::DescriptorType::UniformBuffer,
-				count: 1,
-				stage_flags: hal::pso::ShaderStageFlags::GRAPHICS,
-				immutable_samplers: false,
-			}],
+			bindings: vec![
+				hal::pso::DescriptorSetLayoutBinding {
+					binding: 0,
+					ty: hal::pso::DescriptorType::UniformBuffer,
+					count: 1,
+					stage_flags: hal::pso::ShaderStageFlags::GRAPHICS,
+					immutable_samplers: false,
+				},
+				hal::pso::DescriptorSetLayoutBinding {
+					binding: 1,
+					ty: hal::pso::DescriptorType::SampledImage,
+					count: 1,
+					stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+					immutable_samplers: false,
+				},
+				hal::pso::DescriptorSetLayoutBinding {
+					binding: 2,
+					ty: hal::pso::DescriptorType::Sampler,
+					count: 1,
+					stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
+					immutable_samplers: false,
+				}
+			],
 		};
 
 		Layout {
@@ -123,7 +140,7 @@ where
 	) -> Result<TrianglePass<B>, failure::Error> {
 		assert!(buffers.is_empty());
 		assert!(images.is_empty());
-		assert_eq!(set_layouts.len(), 1);
+		// assert_eq!(set_layouts.len(), 3);
 
 		let uniform_buffer = factory
 			.create_buffer(
@@ -181,13 +198,35 @@ where
 				.with_data_height(h)
 				.with_data(&cube_tex_image_data);
 
+			let texture = cube_tex_builder
+				.build(
+						ImageState {
+								queue,
+								stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
+								access: hal::image::Access::SHADER_READ,
+								layout: hal::image::Layout::ShaderReadOnlyOptimal,
+						},
+						factory,
+				)
+				.unwrap();
+
 		let mut descriptor_pool = unsafe {
 			factory.create_descriptor_pool(
 				1,
-				vec![hal::pso::DescriptorRangeDesc {
-					ty: hal::pso::DescriptorType::UniformBuffer,
-					count: 1,
-				}],
+				vec![
+					hal::pso::DescriptorRangeDesc {
+						ty: hal::pso::DescriptorType::UniformBuffer,
+						count: 1,
+					},
+					hal::pso::DescriptorRangeDesc {
+						ty: hal::pso::DescriptorType::Sampler,
+						count: 1,
+					},
+					hal::pso::DescriptorRangeDesc {
+						ty: hal::pso::DescriptorType::SampledImage,
+						count: 1,
+					},
+				],
 				hal::pso::DescriptorPoolCreateFlags::empty(),
 			)
 		}
@@ -196,15 +235,35 @@ where
 		let mut dynamic_set;
 		unsafe {
 			dynamic_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
-			factory.write_descriptor_sets(vec![hal::pso::DescriptorSetWrite {
-				set: &dynamic_set,
-				binding: 0,
-				array_offset: 0,
-				descriptors: Some(hal::pso::Descriptor::Buffer(
-					uniform_buffer.raw(),
-					Some(0_u64)..Some(0_u64 + size_of::<UniformArgs> as u64),
-				)),
-			}]);
+
+			factory.write_descriptor_sets(vec![
+				hal::pso::DescriptorSetWrite {
+					set: &dynamic_set,
+					binding: 0,
+					array_offset: 0,
+					descriptors: Some(hal::pso::Descriptor::Buffer(
+						uniform_buffer.raw(),
+						Some(0_u64)..Some(0_u64 + size_of::<UniformArgs> as u64),
+					)),
+				},
+				hal::pso::DescriptorSetWrite {
+					set: &dynamic_set,
+					binding: 1,
+					array_offset: 0,
+					descriptors: Some(hal::pso::Descriptor::Image(
+						texture.view().raw(),
+						hal::image::Layout::ShaderReadOnlyOptimal,
+					)),
+				},
+				// hal::pso::DescriptorSetWrite {
+				// 	set: &dynamic_set,
+				// 	binding: 2,
+				// 	array_offset: 0,
+				// 	descriptors: Some(hal::pso::Descriptor::Sampler(
+				// 		texture.sampler().raw()
+				// 	)),
+				// },
+			]);
 		}
 
 		Ok(TrianglePass {
@@ -212,6 +271,7 @@ where
 			descriptor_pool,
 			dynamic_set,
 			mesh: cube_mesh,
+			texture,
 		})
 	}
 }
@@ -273,5 +333,10 @@ where
 		}
 	}
 
-	fn dispose(self, _factory: &mut Factory<B>, _aux: &Aux) {}
+	fn dispose(mut self, factory: &mut Factory<B>, _aux: &Aux) {
+		unsafe {
+			// self.descriptor_pool.free_sets([self.dynamic_set].into_iter());
+			// factory.destroy_descriptor_pool(self.descriptor_pool);
+		}
+	}
 }
