@@ -255,14 +255,14 @@ where
 						hal::image::Layout::ShaderReadOnlyOptimal,
 					)),
 				},
-				// hal::pso::DescriptorSetWrite {
-				// 	set: &dynamic_set,
-				// 	binding: 2,
-				// 	array_offset: 0,
-				// 	descriptors: Some(hal::pso::Descriptor::Sampler(
-				// 		texture.sampler().raw()
-				// 	)),
-				// },
+				hal::pso::DescriptorSetWrite {
+					set: &dynamic_set,
+					binding: 2,
+					array_offset: 0,
+					descriptors: Some(hal::pso::Descriptor::Sampler(
+						texture.sampler().raw()
+					)),
+				},
 			]);
 		}
 
