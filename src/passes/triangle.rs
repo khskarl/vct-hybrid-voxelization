@@ -15,7 +15,6 @@ use rendy::{
 	resource::{Buffer, BufferInfo, DescriptorSetLayout, Escape, Handle},
 };
 
-
 use nalgebra_glm as glm;
 
 use genmesh::{
@@ -25,7 +24,6 @@ use genmesh::{
 
 use image;
 use image::Pixel;
-// use image::buffer::Pixel;
 
 use std::mem::size_of;
 
@@ -70,7 +68,7 @@ pub struct TrianglePassDesc;
 pub struct TrianglePass<B: hal::Backend> {
 	uniform_buffer: Escape<Buffer<B>>,
 	descriptor_pool: B::DescriptorPool,
-	dynamic_set: B::DescriptorSet,
+	frame_sets: Vec<B::DescriptorSet>,
 	mesh: Mesh<B>,
 	texture: Texture<B>,
 }
@@ -82,7 +80,7 @@ where
 	type Pipeline = TrianglePass<B>;
 
 	fn layout(&self) -> Layout {
-		let dynamic_ubo_layout = SetLayout {
+		let frame_layout = SetLayout {
 			bindings: vec![
 				hal::pso::DescriptorSetLayoutBinding {
 					binding: 0,
@@ -104,12 +102,12 @@ where
 					count: 1,
 					stage_flags: hal::pso::ShaderStageFlags::FRAGMENT,
 					immutable_samplers: false,
-				}
+				},
 			],
 		};
 
 		Layout {
-			sets: vec![dynamic_ubo_layout],
+			sets: vec![frame_layout],
 			push_constants: Vec::new(),
 		}
 	}
@@ -176,39 +174,43 @@ where
 			.build(queue, factory)
 			.unwrap();
 
-			let cube_tex_bytes = include_bytes!("../../assets/textures/ground_color.jpg");
-			let cube_tex_img = image::load_from_memory(&cube_tex_bytes[..])
-				.unwrap()
-				.to_rgba();
+		let cube_tex_bytes = include_bytes!("../../assets/textures/ground_color.jpg");
+		let cube_tex_img = image::load_from_memory(&cube_tex_bytes[..])
+			.unwrap()
+			.to_rgba();
 
-			let (w, h) = cube_tex_img.dimensions();
-			let cube_tex_image_data: Vec<Rgba8Srgb> = cube_tex_img
-				.pixels()
-				.map(|p| {
-						use std::convert::TryInto;
-						Rgba8Srgb { repr: p.channels().try_into().expect("slice with incorrect length") }
-					}
-				)
-				.collect::<_>();
+		let (w, h) = cube_tex_img.dimensions();
+		let cube_tex_image_data: Vec<Rgba8Srgb> = cube_tex_img
+			.pixels()
+			.map(|p| {
+				use std::convert::TryInto;
+				Rgba8Srgb {
+					repr: p
+						.channels()
+						.try_into()
+						.expect("slice with incorrect length"),
+				}
+			})
+			.collect::<_>();
 
-			let cube_tex_builder = TextureBuilder::new()
-				.with_kind(hal::image::Kind::D2(w, h, 1, 1))
-				.with_view_kind(hal::image::ViewKind::D2)
-				.with_data_width(w)
-				.with_data_height(h)
-				.with_data(&cube_tex_image_data);
+		let cube_tex_builder = TextureBuilder::new()
+			.with_kind(hal::image::Kind::D2(w, h, 1, 1))
+			.with_view_kind(hal::image::ViewKind::D2)
+			.with_data_width(w)
+			.with_data_height(h)
+			.with_data(&cube_tex_image_data);
 
-			let texture = cube_tex_builder
-				.build(
-						ImageState {
-								queue,
-								stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
-								access: hal::image::Access::SHADER_READ,
-								layout: hal::image::Layout::ShaderReadOnlyOptimal,
-						},
-						factory,
-				)
-				.unwrap();
+		let texture = cube_tex_builder
+			.build(
+				ImageState {
+					queue,
+					stage: hal::pso::PipelineStage::FRAGMENT_SHADER,
+					access: hal::image::Access::SHADER_READ,
+					layout: hal::image::Layout::ShaderReadOnlyOptimal,
+				},
+				factory,
+			)
+			.unwrap();
 
 		let mut descriptor_pool = unsafe {
 			factory.create_descriptor_pool(
@@ -232,13 +234,13 @@ where
 		}
 		.unwrap();
 
-		let mut dynamic_set;
+		let mut frame_set;
 		unsafe {
-			dynamic_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
+			frame_set = descriptor_pool.allocate_set(&set_layouts[0].raw()).unwrap();
 
 			factory.write_descriptor_sets(vec![
 				hal::pso::DescriptorSetWrite {
-					set: &dynamic_set,
+					set: &frame_set,
 					binding: 0,
 					array_offset: 0,
 					descriptors: Some(hal::pso::Descriptor::Buffer(
@@ -247,7 +249,7 @@ where
 					)),
 				},
 				hal::pso::DescriptorSetWrite {
-					set: &dynamic_set,
+					set: &frame_set,
 					binding: 1,
 					array_offset: 0,
 					descriptors: Some(hal::pso::Descriptor::Image(
@@ -256,20 +258,20 @@ where
 					)),
 				},
 				hal::pso::DescriptorSetWrite {
-					set: &dynamic_set,
+					set: &frame_set,
 					binding: 2,
 					array_offset: 0,
-					descriptors: Some(hal::pso::Descriptor::Sampler(
-						texture.sampler().raw()
-					)),
+					descriptors: Some(hal::pso::Descriptor::Sampler(texture.sampler().raw())),
 				},
 			]);
 		}
 
+		let frame_sets = vec![frame_set];
+
 		Ok(TrianglePass {
 			uniform_buffer,
 			descriptor_pool,
-			dynamic_set,
+			frame_sets,
 			mesh: cube_mesh,
 			texture,
 		})
@@ -313,20 +315,21 @@ where
 
 	fn draw(
 		&mut self,
-
 		layout: &B::PipelineLayout,
 		mut encoder: RenderPassEncoder<'_, B>,
-		_index: usize,
+		index: usize,
 		_aux: &Aux,
 	) {
 		unsafe {
-			encoder.bind_graphics_descriptor_sets(layout, 0, Some(&self.dynamic_set), std::iter::empty());
+			encoder.bind_graphics_descriptor_sets(
+				layout,
+				0,
+				Some(&self.frame_sets[0]),
+				std::iter::empty(),
+			);
 		}
 
-		assert!(self
-			.mesh
-			.bind(0, &[PosTex::vertex()], &mut encoder)
-			.is_ok());
+		assert!(self.mesh.bind(0, &[PosTex::vertex()], &mut encoder).is_ok());
 
 		unsafe {
 			encoder.draw_indexed(0..self.mesh.len(), 0, 0..1);
@@ -335,8 +338,8 @@ where
 
 	fn dispose(mut self, factory: &mut Factory<B>, _aux: &Aux) {
 		unsafe {
-			// self.descriptor_pool.free_sets([self.dynamic_set].into_iter());
-			// factory.destroy_descriptor_pool(self.descriptor_pool);
+			self.descriptor_pool.free_sets(self.frame_sets.into_iter());
+			factory.destroy_descriptor_pool(self.descriptor_pool);
 		}
 	}
 }

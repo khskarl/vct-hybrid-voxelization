@@ -16,5 +16,4 @@ layout(set = 0, binding = 2) uniform sampler tex_sampler;
 void main() {
   color.rgb = texture(sampler2D(tex, tex_sampler), frag_uv).rgb;
   color.a = 1.0;
-//   color = vec4(frag_uv, 0.1, 1.0);
 }
