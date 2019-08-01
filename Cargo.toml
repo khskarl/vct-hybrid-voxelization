@@ -18,6 +18,7 @@ failure = "0.1.5"
 nalgebra-glm = "0.4.0"
 genmesh = "0.6.2"
 image = "0.22.0"
+gltf = "0.13.0"
 
 [dependencies.rendy]
 version = "0.3"
