@@ -22,8 +22,6 @@ use genmesh::{
 	Triangulate,
 };
 
-use gltf;
-
 use image;
 use image::Pixel;
 
@@ -152,9 +150,7 @@ where
 			)
 			.unwrap();
 
-		let (_, buffers, images) = gltf::import("assets/models/box.gltf")?;
-		println!("buffers length {}:", buffers.len());
-		println!("images length {}:", images.len());
+
 
 		let cube_generator = genmesh::generators::Cube::new();
 		let cube_indices: Vec<_> =

@@ -13,6 +13,7 @@ use passes::triangle::TrianglePass;
 
 mod scene;
 use scene::camera::*;
+use scene::model::*;
 
 use std::time::Instant;
 
@@ -93,6 +94,7 @@ fn main() {
 		view: camera.view(),
 	};
 
+	let model = Model::new("assets/models/box.gltf");
 	// let path = std::path::Path::new("./assets/textures/ground_color.png");
 	// let tex_file = std::fs::File::open(&path).unwrap();
 
