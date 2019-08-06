@@ -17,10 +17,7 @@ use rendy::{
 
 use nalgebra_glm as glm;
 
-use genmesh::{
-	generators::{IndexedPolygon, SharedVertex},
-	Triangulate,
-};
+use crate::scene::model::Model;
 
 use image;
 use image::Pixel;
@@ -150,29 +147,21 @@ where
 			)
 			.unwrap();
 
+		let model = Model::new("assets/models/box.gltf");
 
-
-		let cube_generator = genmesh::generators::Cube::new();
-		let cube_indices: Vec<_> =
-			genmesh::Vertices::vertices(cube_generator.indexed_polygon_iter().triangulate())
-				.map(|i| i as u32)
-				.collect();
-		let cube_vertices: Vec<_> = cube_generator
-			.shared_vertex_iter()
-			.map(|v| {
-				let pos = v.pos;
-				let tex_coords = [pos.x, pos.y.max(pos.z)];
-
-				PosTex {
-					position: pos.into(),
-					tex_coord: tex_coords.into(),
+		let mut vertices = Vec::<PosTex>::new();
+		for i in 0..model.positions.len() {
+			vertices.push(
+				PosTex{
+					position: model.positions[i].into(),
+					tex_coord: model.tex_coords[i].into(),
 				}
-			})
-			.collect();
+			)
+		}
 
 		let cube_mesh = Mesh::<B>::builder()
-			.with_indices(&cube_indices[..])
-			.with_vertices(&cube_vertices[..])
+			.with_indices(&model.indices[..])
+			.with_vertices(&vertices[..])
 			.build(queue, factory)
 			.unwrap();
 
