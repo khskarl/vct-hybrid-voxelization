@@ -4,7 +4,7 @@ use rendy::{
 	graph::{render::*, GraphContext, NodeBuffer, NodeImage},
 	memory::MemoryUsageValue,
 	mesh::{AsVertex, Mesh, PosTex},
-	shader::{ShaderKind, SourceLanguage, StaticShaderInfo},
+	shader::{ShaderKind, SourceLanguage, PathBufShaderInfo},
 	texture::{pixel::Rgba8Srgb, Texture, TextureBuilder},
 };
 
@@ -25,15 +25,15 @@ use image::Pixel;
 use std::mem::size_of;
 
 lazy_static::lazy_static! {
-	static ref VERTEX: StaticShaderInfo = StaticShaderInfo::new(
-		concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.vs"),
+	static ref VERTEX: PathBufShaderInfo = PathBufShaderInfo::new(
+		std::path::PathBuf::from("src/shaders/triangle.vs"),
 		ShaderKind::Vertex,
 		SourceLanguage::GLSL,
 		"main",
 	);
 
-	static ref FRAGMENT: StaticShaderInfo = StaticShaderInfo::new(
-		concat!(env!("CARGO_MANIFEST_DIR"), "/src/shaders/triangle.fs"),
+	static ref FRAGMENT: PathBufShaderInfo = PathBufShaderInfo::new(
+		std::path::PathBuf::from("src/shaders/triangle.fs"),
 		ShaderKind::Fragment,
 		SourceLanguage::GLSL,
 		"main",
