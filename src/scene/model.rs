@@ -45,6 +45,11 @@ impl Model {
 					indices.push(index);
 				}
 			}
+
+			let material = primitive.material();
+			let pbr_metallic_roughness = material.pbr_metallic_roughness();
+			let base_color_texture = pbr_metallic_roughness.base_color_texture();
+			// println!("Material: {}", pbr_metallic_roughness.index().unwrap());
 		}
 
 		Model {

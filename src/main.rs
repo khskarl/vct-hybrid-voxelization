@@ -165,21 +165,3 @@ fn main() {
 
 	graph.dispose(&mut factory, &mut aux);
 }
-
-pub fn application_root_dir() -> String {
-	match std::env::var("CARGO_MANIFEST_DIR") {
-		Ok(_) => String::from(env!("CARGO_MANIFEST_DIR")),
-		Err(_) => {
-			let mut path = std::env::current_exe().expect("Failed to find executable path.");
-			while let Ok(target) = std::fs::read_link(path.clone()) {
-				path = target;
-			}
-			String::from(
-				path.parent()
-					.expect("Failed to get parent directory of the executable.")
-					.to_str()
-					.unwrap(),
-			)
-		}
-	}
-}
