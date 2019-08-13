@@ -1,14 +1,13 @@
 use gltf::Gltf;
 
 #[derive(Debug)]
-pub struct Model<'a> {
+pub struct Model {
 		pub positions: Vec<[f32; 3]>,
 		pub tex_coords: Vec<[f32; 2]>,
 		pub indices: Vec<u32>,
-		pub texture: gltf::Texture<'a>,
 }
 
-impl<'a> Model<'a> {
+impl Model {
 	pub fn new(path: &str) -> Model {
 		let (gltf, buffers, _) = gltf::import(path).unwrap();
 
@@ -23,7 +22,7 @@ impl<'a> Model<'a> {
 		let mut positions = Vec::<[f32; 3]>::new();
 		let mut tex_coords = Vec::<[f32; 2]>::new();
 		let mut indices = Vec::<u32>::new();
-		let mut texture;
+
 		for primitive in mesh.primitives() {
 			let reader = primitive.reader( |buffer|
 				Some(&buffers[buffer.index()])
@@ -47,9 +46,9 @@ impl<'a> Model<'a> {
 				}
 			}
 
-			let material = primitive.material().clone();
-			let pbr_metallic_roughness = material.pbr_metallic_roughness();
-			texture = pbr_metallic_roughness.base_color_texture().unwrap().texture().clone();
+			// let material = primitive.material().clone();
+			// let pbr_metallic_roughness = material.pbr_metallic_roughness();
+			// texture = pbr_metallic_roughness.base_color_texture().unwrap().texture().clone();
 			// println!("Material: {}", pbr_metallic_roughness.index().unwrap());
 		}
 
@@ -57,7 +56,19 @@ impl<'a> Model<'a> {
 			positions,
 			tex_coords,
 			indices,
-			texture,
 		}
+	}
+
+	pub fn info(path: &str) {
+		let (gltf, buffers, _) = gltf::import(path).unwrap();
+
+		for mesh in gltf.meshes() {
+			println!("[Mesh #{}]", mesh.index());
+
+			for primitive in mesh.primitives() {
+				println!(" # primitive #{}", primitive.index());
+			}
+		}
+
 	}
 }

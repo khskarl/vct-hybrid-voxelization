@@ -33,6 +33,9 @@ fn main() {
 
 #[cfg(any(feature = "dx12", feature = "metal", feature = "vulkan"))]
 fn main() {
+	Model::info("assets/models/sponza/Sponza.gltf");
+	return;
+
 	const WINDOW_TITLE: &str = "Lunar Renderer";
 
 	env_logger::Builder::from_default_env()
@@ -160,6 +163,7 @@ fn main() {
 		let dt = Instant::now()
 			.duration_since(start_frame_time)
 			.as_secs_f32();
+
 		window.set_title(&format!("{} | {:.6}", WINDOW_TITLE, dt));
 	}
 
