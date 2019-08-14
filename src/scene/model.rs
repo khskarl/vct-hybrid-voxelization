@@ -60,15 +60,29 @@ impl Model {
 	}
 
 	pub fn info(path: &str) {
-		let (gltf, buffers, _) = gltf::import(path).unwrap();
+		let (gltf, _buffers, _images) = gltf::import(path).unwrap();
 
 		for mesh in gltf.meshes() {
 			println!("[Mesh #{}]", mesh.index());
 
 			for primitive in mesh.primitives() {
-				println!(" # primitive #{}", primitive.index());
+				let material = primitive.material();
+				let material_name = match material.index() {
+					Some(index) => index.to_string(),
+					None => "default".to_string(),
+				};
+
+				println!("  Primitive {} with Mat {}",
+					primitive.index(),
+					material_name,
+				);
 			}
 		}
 
+		for material in gltf.materials() {
+			println!("[Material #{}]", material.index().unwrap());
+			println!("  Alpha Cutoff: {:?}", material.alpha_cutoff());
+			println!("  Alpha Mode: {:?}", material.alpha_mode());
+		}
 	}
 }
