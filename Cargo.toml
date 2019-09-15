@@ -5,7 +5,7 @@ authors = ["khskarl <karllhenning64@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["metal"]
+default = ["vulkan"]
 metal = ["rendy/metal"]
 dx12 = ["rendy/dx12"]
 vulkan = ["rendy/vulkan"]
@@ -23,3 +23,12 @@ gltf = "0.13.0"
 [dependencies.rendy]
 version = "0.3"
 features = ["texture-image"]
+
+# The development profile, used for `cargo build`
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+debug = false

@@ -9,7 +9,8 @@ pub struct Model {
 
 impl Model {
 	pub fn new(path: &str) -> Model {
-		let (gltf, buffers, _) = gltf::import(path).unwrap();
+		let gltf_document = gltf::import(path);
+		let (gltf, buffers, _) = gltf_document.unwrap();
 
 		let mut meshes = Vec::<gltf::mesh::Mesh>::new();
 

@@ -33,8 +33,8 @@ fn main() {
 
 #[cfg(any(feature = "dx12", feature = "metal", feature = "vulkan"))]
 fn main() {
-	Model::info("assets/models/sponza/Sponza.gltf");
-	return;
+	// Model::info("assets/models/sponza/Sponza.gltf");
+	// return;
 
 	const WINDOW_TITLE: &str = "Lunar Renderer";
 
