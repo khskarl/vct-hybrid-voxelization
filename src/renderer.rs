@@ -1,19 +1,16 @@
 use gl::types::*;
 use gl_helpers::*;
 
-use std::ffi::CString;
-use std::mem;
-use std::ptr;
-
 use crate::gl_utils;
+use crate::scene::camera::*;
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 static VERTEX_DATA: [GLfloat; 16] = [
 // pos        uv
-	 1.0f32,  1.0f32, 1.0f32, 1.0f32,
-  -1.0f32,  1.0f32, 0.0f32, 1.0f32,
-   1.0f32, -1.0f32, 1.0f32, 0.0f32,
-  -1.0f32, -1.0f32, 0.0f32, 0.0f32,
+	 1.0, -1.0, 1.0, 0.0,
+	-1.0, -1.0, 0.0, 0.0,
+	 1.0,  1.0, 1.0, 1.0,
+	-1.0,  1.0, 0.0, 1.0,
 ];
 
 #[derive(Debug)]
@@ -52,14 +49,22 @@ impl Renderer {
 		}
 	}
 
-	pub fn render(&self) {
+	pub fn render(&self, camera: &Camera) {
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
 		gl_clear(true, true, true);
 
-		self
-			.pbr_program
-			.get_uniform("size")
-			.set_2f(&[1.0f32, 1.0f32]);
+		let proj: [f32; 16] = {
+			let transmute_me: [[f32; 4]; 4] = camera.projection().into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
+
+		let view: [f32; 16] = {
+			let transmute_me: [[f32; 4]; 4] = camera.view().into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
+
+		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
+		self.pbr_program.get_uniform("view").set_mat4f(&view);
 
 		gl_draw_arrays(DrawMode::TriangleStrip, 0, 4);
 

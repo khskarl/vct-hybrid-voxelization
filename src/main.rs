@@ -4,6 +4,11 @@ use std::time::Instant;
 mod gl_utils;
 mod renderer;
 
+use nalgebra_glm as glm;
+
+mod scene;
+use scene::camera::*;
+
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer";
 
@@ -22,7 +27,9 @@ fn main() {
 
 	let renderer = renderer::Renderer::new(&window_gl);
 
-	let _target_dt = 0.01666666666;
+	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
+
+	let target_dt = 0.01666666666;
 	event_loop.run(move |event, _, control_flow| {
 		use glutin::event::*;
 		use glutin::event_loop::*;
@@ -43,8 +50,24 @@ fn main() {
 				} => {
 					use glutin::event::VirtualKeyCode::*;
 
+					let dt = target_dt;
+					let move_rate = 5.0; // m/s
+					let rotation_rate = 60.0; // Degrees/s
+
 					match key {
 						Escape => *control_flow = ControlFlow::Exit,
+						A => camera.move_right(-move_rate * dt),
+						D => camera.move_right(move_rate * dt),
+						S => camera.move_forward(-move_rate * dt),
+						W => camera.move_forward(move_rate * dt),
+
+						J => camera.rotate_right(-rotation_rate * dt),
+						L => camera.rotate_right(rotation_rate * dt),
+						K => camera.rotate_up(-rotation_rate * dt),
+						I => camera.rotate_up(rotation_rate * dt),
+
+						// Z => aux.time -= 0.05 * dt,
+						// X => aux.time += 0.05 * dt,
 						_ => (),
 					}
 				}
@@ -56,7 +79,7 @@ fn main() {
 			_ => (),
 		}
 
-		renderer.render();
+		renderer.render(&camera);
 		window_gl.swap_buffers().unwrap();
 
 		let dt = Instant::now()
