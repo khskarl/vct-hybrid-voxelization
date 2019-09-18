@@ -7,67 +7,67 @@ use std::ptr;
 
 use crate::gl_utils;
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
+static VERTEX_DATA: [GLfloat; 16] = [
+// pos        uv
+	 1.0f32,  1.0f32, 1.0f32, 1.0f32,
+  -1.0f32,  1.0f32, 0.0f32, 1.0f32,
+   1.0f32, -1.0f32, 1.0f32, 0.0f32,
+  -1.0f32, -1.0f32, 0.0f32, 0.0f32,
+];
+
 #[derive(Debug)]
-pub struct Renderer {}
+pub struct Renderer {
+	vertex_buffer: GLBuffer,
+	vertex_array: GLVertexArray,
+	pbr_program: GLProgram,
+}
 
 impl Renderer {
 	pub fn new(window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>) -> Renderer {
-		Renderer::initialize_opengl(&window_gl);
-		Renderer {}
-	}
-
-	fn initialize_opengl(window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>) {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 
 		gl_utils::print_opengl_diagnostics();
 
+		gl_set_defaults();
+		gl_set_viewport(0, 0, 800, 600);
+
 		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 
-		let (mut vao, mut vbo) = (0, 0);
+		let buffer = GLBuffer::new(BufferTarget::Array, 4, Usage::StaticDraw, &VERTEX_DATA);
 
-		unsafe {
-			gl::GenVertexArrays(1, &mut vao);
-			gl::BindVertexArray(vao);
+		let mut vertex_array = GLVertexArray::new();
+		vertex_array.bind();
+		vertex_array.add_attribute(&buffer, program.get_attribute("position"), 0);
+		vertex_array.add_attribute(&buffer, program.get_attribute("uv"), 2);
 
-			gl::GenBuffers(1, &mut vbo);
-			gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-			gl::BufferData(
-				gl::ARRAY_BUFFER,
-				(gl_utils::VERTEX_DATA.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-				mem::transmute(&gl_utils::VERTEX_DATA[0]),
-				gl::STATIC_DRAW,
-			);
+		vertex_array.enable_attributes();
 
-			gl::UseProgram(program.id());
-			gl::BindFragDataLocation(program.id(), 0, CString::new("out_color").unwrap().as_ptr());
+		program.get_uniform("time").set_1f(1.0_f32);
 
-			let pos_attr =
-				gl::GetAttribLocation(program.id(), CString::new("position").unwrap().as_ptr());
-			gl::EnableVertexAttribArray(pos_attr as GLuint);
-			gl::VertexAttribPointer(
-				pos_attr as GLuint,
-				2,
-				gl::FLOAT,
-				gl::FALSE as GLboolean,
-				0,
-				ptr::null(),
-			);
+		Renderer {
+			vertex_buffer: buffer,
+			vertex_array,
+			pbr_program: program,
 		}
 	}
 
 	pub fn render(&self) {
-		unsafe {
-			gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-			gl::Clear(gl::COLOR_BUFFER_BIT);
+		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
+		gl_clear(true, true, true);
 
-			gl::DrawArrays(gl::TRIANGLES, 0, 3);
+		self
+			.pbr_program
+			.get_uniform("size")
+			.set_2f(&[1.0f32, 1.0f32]);
 
-			// gl::DrawElements()
+		gl_draw_arrays(DrawMode::TriangleStrip, 0, 4);
 
-			// void glDrawElements(	GLenum mode,
-			// 	GLsizei count,
-			// 	GLenum type,
-			// 	const GLvoid * indices);
-		}
+		// gl::DrawElements()
+
+		// void glDrawElements(	GLenum mode,
+		// 	GLsizei count,
+		// 	GLenum type,
+		// 	const GLvoid * indices);
 	}
 }
