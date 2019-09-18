@@ -1,4 +1,5 @@
 use gl::types::*;
+use gl_helpers::*;
 
 use std::ffi::CString;
 use std::mem;
@@ -20,9 +21,7 @@ impl Renderer {
 
 		gl_utils::print_opengl_diagnostics();
 
-		let vs = gl_utils::compile_shader(gl_utils::VS_SRC, gl::VERTEX_SHADER);
-		let fs = gl_utils::compile_shader(gl_utils::FS_SRC, gl::FRAGMENT_SHADER);
-		let program = gl_utils::link_program(vs, fs);
+		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 
 		let (mut vao, mut vbo) = (0, 0);
 
@@ -39,10 +38,11 @@ impl Renderer {
 				gl::STATIC_DRAW,
 			);
 
-			gl::UseProgram(program);
-			gl::BindFragDataLocation(program, 0, CString::new("out_color").unwrap().as_ptr());
+			gl::UseProgram(program.id());
+			gl::BindFragDataLocation(program.id(), 0, CString::new("out_color").unwrap().as_ptr());
 
-			let pos_attr = gl::GetAttribLocation(program, CString::new("position").unwrap().as_ptr());
+			let pos_attr =
+				gl::GetAttribLocation(program.id(), CString::new("position").unwrap().as_ptr());
 			gl::EnableVertexAttribArray(pos_attr as GLuint);
 			gl::VertexAttribPointer(
 				pos_attr as GLuint,
@@ -68,18 +68,6 @@ impl Renderer {
 			// 	GLsizei count,
 			// 	GLenum type,
 			// 	const GLvoid * indices);
-		}
-	}
-}
-
-impl Drop for Renderer {
-	fn drop(&mut self) {
-		unsafe {
-			// gl::DeleteProgram(program);
-			// gl::DeleteShader(fs);
-			// gl::DeleteShader(vs);
-			// gl::DeleteBuffers(1, &vbo);
-			// gl::DeleteVertexArrays(1, &vao);
 		}
 	}
 }

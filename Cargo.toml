@@ -14,7 +14,7 @@ genmesh = "0.6.2"
 image = "0.22.0"
 gltf = "0.13.0"
 gl = "0.13.0"
-gl_helpers = "0.1.8"
+gl_helpers = { git = "https://gitlab.com/khskarl/rs-gl_helpers.git" }
 glutin = "0.22.0-alpha3"
 
 [profile.dev]
