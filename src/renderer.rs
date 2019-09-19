@@ -32,7 +32,9 @@ impl Renderer {
 		gl_utils::print_opengl_diagnostics();
 
 		gl_set_defaults();
-		gl_set_viewport(0, 0, 800, 600);
+
+		let inner_size = window_gl.window().inner_size();
+		gl_set_viewport(0, 0, inner_size.width as usize, inner_size.height as usize);
 
 		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 

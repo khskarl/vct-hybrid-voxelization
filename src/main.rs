@@ -56,13 +56,12 @@ fn main() {
 		unsafe { window_gl.make_current() }.unwrap()
 	};
 
+	let renderer = renderer::Renderer::new(&window_gl);
 	{
-		let logical_size = glutin::dpi::LogicalSize::new(800.0, 600.0);
+		let logical_size = window_gl.window().inner_size();
 		let dpi_factor = window_gl.window().hidpi_factor();
 		window_gl.resize(logical_size.to_physical(dpi_factor));
 	}
-
-	let renderer = renderer::Renderer::new(&window_gl);
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
 
