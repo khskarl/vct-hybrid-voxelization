@@ -10,6 +10,36 @@ mod scene;
 use scene::camera::*;
 use scene::model::Model;
 
+#[derive(Debug)]
+#[allow(non_snake_case)]
+struct KeyStates {
+	A: glutin::event::ElementState,
+	D: glutin::event::ElementState,
+	S: glutin::event::ElementState,
+	W: glutin::event::ElementState,
+
+	J: glutin::event::ElementState,
+	L: glutin::event::ElementState,
+	K: glutin::event::ElementState,
+	I: glutin::event::ElementState,
+}
+
+impl KeyStates {
+	pub fn new() -> KeyStates {
+		KeyStates {
+			A: glutin::event::ElementState::Released,
+			D: glutin::event::ElementState::Released,
+			S: glutin::event::ElementState::Released,
+			W: glutin::event::ElementState::Released,
+
+			J: glutin::event::ElementState::Released,
+			L: glutin::event::ElementState::Released,
+			K: glutin::event::ElementState::Released,
+			I: glutin::event::ElementState::Released,
+		}
+	}
+}
+
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer";
 
@@ -26,12 +56,20 @@ fn main() {
 		unsafe { window_gl.make_current() }.unwrap()
 	};
 
+	{
+		let logical_size = glutin::dpi::LogicalSize::new(800.0, 600.0);
+		let dpi_factor = window_gl.window().hidpi_factor();
+		window_gl.resize(logical_size.to_physical(dpi_factor));
+	}
+
 	let renderer = renderer::Renderer::new(&window_gl);
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
 
 	let model = Model::new("assets/models/box.gltf");
 	// renderer.submit_model(&model);
+
+	let mut key_states = KeyStates::new();
 
 	let target_dt = 0.01666666666;
 	let mut start_frame_time = Instant::now();
@@ -45,32 +83,34 @@ fn main() {
 		match event {
 			Event::WindowEvent { event, .. } => match event {
 				WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+				WindowEvent::Resized(logical_size) => {
+					let dpi_factor =
+						window_gl.window().hidpi_factor();
+						window_gl.resize(logical_size.to_physical(dpi_factor));
+				},
 				WindowEvent::KeyboardInput {
 					input:
 						KeyboardInput {
-							state: ElementState::Pressed,
+							state: state,
 							virtual_keycode: Some(key),
 							..
 						},
 					..
 				} => {
 					use glutin::event::VirtualKeyCode::*;
+					use glutin::event::ElementState::*;
 
-					let dt = target_dt;
-					let move_rate = 5.0; // m/s
-					let rotation_rate = 60.0; // Degrees/s
+					match (key, state) {
+						(Escape, Released) => *control_flow = ControlFlow::Exit,
+						(A, _) => key_states.A = state,
+						(D, _) => key_states.D = state,
+						(S, _) => key_states.S = state,
+						(W, _) => key_states.W = state,
 
-					match key {
-						Escape => *control_flow = ControlFlow::Exit,
-						A => camera.move_right(-move_rate * dt),
-						D => camera.move_right(move_rate * dt),
-						S => camera.move_forward(-move_rate * dt),
-						W => camera.move_forward(move_rate * dt),
-
-						J => camera.rotate_right(-rotation_rate * dt),
-						L => camera.rotate_right(rotation_rate * dt),
-						K => camera.rotate_up(-rotation_rate * dt),
-						I => camera.rotate_up(rotation_rate * dt),
+						(J, _) => key_states.J = state,
+						(L, _) => key_states.L = state,
+						(K, _) => key_states.K = state,
+						(I, _) => key_states.I = state,
 
 						// Z => aux.time -= 0.05 * dt,
 						// X => aux.time += 0.05 * dt,
@@ -84,6 +124,36 @@ fn main() {
 				_ => (),
 			},
 			Event::EventsCleared => {
+				let dt = target_dt;
+				let move_rate = 5.0; // m/s
+				let rotation_rate = 60.0; // Degrees/s
+				use glutin::event::ElementState::Pressed;
+				if key_states.A == Pressed {
+					camera.move_right(-move_rate * dt)
+				}
+				if key_states.D == Pressed {
+					camera.move_right(move_rate * dt)
+				}
+				if key_states.S == Pressed {
+					camera.move_forward(-move_rate * dt)
+				}
+				if key_states.W == Pressed {
+					camera.move_forward(move_rate * dt)
+				}
+
+				if key_states.J == Pressed {
+					camera.rotate_right(-rotation_rate * dt)
+				}
+				if key_states.L == Pressed {
+					camera.rotate_right(rotation_rate * dt)
+				}
+				if key_states.K == Pressed {
+					camera.rotate_up(-rotation_rate * dt)
+				}
+				if key_states.I == Pressed {
+					camera.rotate_up(rotation_rate * dt)
+				}
+
 				let dt = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();
