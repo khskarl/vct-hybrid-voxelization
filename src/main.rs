@@ -8,6 +8,7 @@ use nalgebra_glm as glm;
 
 mod scene;
 use scene::camera::*;
+use scene::model::Model;
 
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer";
@@ -28,6 +29,9 @@ fn main() {
 	let renderer = renderer::Renderer::new(&window_gl);
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
+
+	let model = Model::new("assets/models/box.gltf");
+	// renderer.submit_model(&model);
 
 	let target_dt = 0.01666666666;
 	let mut start_frame_time = Instant::now();
@@ -55,7 +59,7 @@ fn main() {
 					let dt = target_dt;
 					let move_rate = 5.0; // m/s
 					let rotation_rate = 60.0; // Degrees/s
-													// println!("Key: {:?}", key);
+
 					match key {
 						Escape => *control_flow = ControlFlow::Exit,
 						A => camera.move_right(-move_rate * dt),
@@ -91,11 +95,13 @@ fn main() {
 				window_gl.window().request_redraw();
 
 				start_frame_time = Instant::now();
+
+				*control_flow = ControlFlow::Poll;
 			}
 			Event::DeviceEvent { event, .. } => match event {
 				_ => (),
 			},
-			_ => (),
+			_ => *control_flow = ControlFlow::Poll,
 		}
 	});
 }

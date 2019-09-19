@@ -3,14 +3,19 @@ use gl_helpers::*;
 
 use crate::gl_utils;
 use crate::scene::camera::*;
+use crate::scene::model::Model;
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
-static VERTEX_DATA: [GLfloat; 16] = [
+static VERTEX_DATA: [GLfloat; 20] = [
 // pos        uv
-	 1.0, -1.0, 1.0, 0.0,
-	-1.0, -1.0, 0.0, 0.0,
-	 1.0,  1.0, 1.0, 1.0,
-	-1.0,  1.0, 0.0, 1.0,
+	 1.0, -1.0, 0.0,
+	-1.0, -1.0, 0.0,
+	 1.0,  1.0, 0.0,
+	-1.0,  1.0, 0.0,
+	1.0, 0.0,
+	0.0, 0.0,
+	1.0, 1.0,
+	0.0, 1.0,
 ];
 
 #[derive(Debug)]
@@ -31,12 +36,12 @@ impl Renderer {
 
 		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 
-		let buffer = GLBuffer::new(BufferTarget::Array, 4, Usage::StaticDraw, &VERTEX_DATA);
+		let buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &VERTEX_DATA);
 
 		let mut vertex_array = GLVertexArray::new();
 		vertex_array.bind();
 		vertex_array.add_attribute(&buffer, program.get_attribute("position"), 0);
-		vertex_array.add_attribute(&buffer, program.get_attribute("uv"), 2);
+		vertex_array.add_attribute(&buffer, program.get_attribute("uv"), 3 * 4);
 
 		vertex_array.enable_attributes();
 
@@ -74,5 +79,44 @@ impl Renderer {
 		// 	GLsizei count,
 		// 	GLenum type,
 		// 	const GLvoid * indices);
+	}
+
+	pub fn submit_model(&mut self, model: &Model) {
+		let mut buffer = Vec::<f32>::new();
+
+		for position in &model.positions {
+			buffer.push(position[0]);
+			buffer.push(position[1]);
+			buffer.push(position[2]);
+		}
+
+		for tex_coord in &model.tex_coords {
+			buffer.push(tex_coord[0]);
+			buffer.push(tex_coord[1]);
+		}
+
+		let vertex_buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &buffer);
+
+		let mut vertex_array = GLVertexArray::new();
+		vertex_array.bind();
+		vertex_array.add_attribute(
+			&vertex_buffer,
+			self.pbr_program.get_attribute("position"),
+			0,
+		);
+		vertex_array.add_attribute(
+			&vertex_buffer,
+			self.pbr_program.get_attribute("uv"),
+			model.positions.len() * 3,
+		);
+
+		let index_buffer = GLBuffer::new(
+			BufferTarget::ElementArray,
+			0,
+			Usage::StaticDraw,
+			&model.indices,
+		);
+
+		vertex_array.enable_attributes();
 	}
 }
