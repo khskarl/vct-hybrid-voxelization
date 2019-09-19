@@ -2,9 +2,9 @@ use gltf::Gltf;
 
 #[derive(Debug)]
 pub struct Model {
-		pub positions: Vec<[f32; 3]>,
-		pub tex_coords: Vec<[f32; 2]>,
-		pub indices: Vec<u32>,
+	pub positions: Vec<[f32; 3]>,
+	pub tex_coords: Vec<[f32; 2]>,
+	pub indices: Vec<u32>,
 }
 
 impl Model {
@@ -25,9 +25,7 @@ impl Model {
 		let mut indices = Vec::<u32>::new();
 
 		for primitive in mesh.primitives() {
-			let reader = primitive.reader( |buffer|
-				Some(&buffers[buffer.index()])
-			);
+			let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
 			if let Some(iter) = reader.read_positions() {
 				for vertex_position in iter {
@@ -53,6 +51,9 @@ impl Model {
 			// println!("Material: {}", pbr_metallic_roughness.index().unwrap());
 		}
 
+		println!("# vertices: {}", positions.len());
+		println!("# indices: {}", indices.len());
+
 		Model {
 			positions,
 			tex_coords,
@@ -73,7 +74,8 @@ impl Model {
 					None => "default".to_string(),
 				};
 
-				println!("  Primitive {} with Mat {}",
+				println!(
+					"  Primitive {} with Mat {}",
 					primitive.index(),
 					material_name,
 				);

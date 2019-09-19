@@ -7,7 +7,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'lunar-renderer'",
+            "name": "Debug debug bin 'lunar-renderer'",
             "cargo": {
                 "args": [
                     "build",
@@ -21,7 +21,31 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}",
-            "sourceLanguages": ["rust"]
+            "sourceLanguages": [
+                "rust"
+            ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug release bin 'lunar-renderer'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=lunar-renderer",
+                    "--package=lunar-renderer",
+                    "--release"
+                ],
+                "filter": {
+                    "name": "lunar-renderer",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ]
         },
         {
             "type": "lldb",
@@ -41,7 +65,9 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}",
-            "sourceLanguages": ["rust"]
+            "sourceLanguages": [
+                "rust"
+            ]
         }
     ]
 }

@@ -42,12 +42,13 @@ impl KeyStates {
 
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer";
+	let logical_size = glutin::dpi::LogicalSize::new(800.0, 600.0);
 
 	let event_loop = glutin::event_loop::EventLoop::new();
 
 	let window_builder = glutin::window::WindowBuilder::new()
 		.with_title(WINDOW_TITLE)
-		.with_inner_size(glutin::dpi::LogicalSize::new(800.0, 600.0));
+		.with_inner_size(logical_size);
 
 	let window_gl = {
 		let window_gl = glutin::ContextBuilder::new()
@@ -57,7 +58,7 @@ fn main() {
 	};
 
 	let model = Model::new("assets/models/box.gltf");
-	let renderer = renderer::Renderer::new(&window_gl, &model);
+	let renderer = renderer::Renderer::new(&window_gl, logical_size, &model);
 	{
 		let logical_size = window_gl.window().inner_size();
 		let dpi_factor = window_gl.window().hidpi_factor();
@@ -81,10 +82,9 @@ fn main() {
 			Event::WindowEvent { event, .. } => match event {
 				WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
 				WindowEvent::Resized(logical_size) => {
-					let dpi_factor =
-						window_gl.window().hidpi_factor();
-						window_gl.resize(logical_size.to_physical(dpi_factor));
-				},
+					let dpi_factor = window_gl.window().hidpi_factor();
+					window_gl.resize(logical_size.to_physical(dpi_factor));
+				}
 				WindowEvent::KeyboardInput {
 					input:
 						KeyboardInput {

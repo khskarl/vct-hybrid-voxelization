@@ -15,15 +15,21 @@ pub struct Renderer {
 }
 
 impl Renderer {
-	pub fn new(window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>, model: &Model) -> Renderer {
+	pub fn new(
+		window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>,
+		logical_size: glutin::dpi::LogicalSize,
+		model: &Model,
+	) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 
 		gl_utils::print_opengl_diagnostics();
-
 		gl_set_defaults();
-
-		let inner_size = window_gl.window().inner_size();
-		gl_set_viewport(0, 0, inner_size.width as usize, inner_size.height as usize);
+		gl_set_viewport(
+			0,
+			0,
+			logical_size.width as usize,
+			logical_size.height as usize,
+		);
 
 		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 
@@ -44,11 +50,7 @@ impl Renderer {
 
 		let mut vertex_array = GLVertexArray::new();
 		vertex_array.bind();
-		vertex_array.add_attribute(
-			&vertex_buffer,
-			program.get_attribute("position"),
-			0,
-		);
+		vertex_array.add_attribute(&vertex_buffer, program.get_attribute("position"), 0);
 		vertex_array.add_attribute(
 			&vertex_buffer,
 			program.get_attribute("uv"),
@@ -97,7 +99,11 @@ impl Renderer {
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
 
-		gl_draw_elements(DrawMode::TriangleStrip, self.count_vertices, IndexKind::UnsignedInt, 0);
+		gl_draw_elements(
+			DrawMode::Triangles,
+			self.count_vertices,
+			IndexKind::UnsignedInt,
+			0,
+		);
 	}
-
 }
