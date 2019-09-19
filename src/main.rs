@@ -56,7 +56,8 @@ fn main() {
 		unsafe { window_gl.make_current() }.unwrap()
 	};
 
-	let renderer = renderer::Renderer::new(&window_gl);
+	let model = Model::new("assets/models/box.gltf");
+	let renderer = renderer::Renderer::new(&window_gl, &model);
 	{
 		let logical_size = window_gl.window().inner_size();
 		let dpi_factor = window_gl.window().hidpi_factor();
@@ -64,9 +65,6 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
-
-	let model = Model::new("assets/models/box.gltf");
-	// renderer.submit_model(&model);
 
 	let mut key_states = KeyStates::new();
 

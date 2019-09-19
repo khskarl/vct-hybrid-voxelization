@@ -5,28 +5,17 @@ use crate::gl_utils;
 use crate::scene::camera::*;
 use crate::scene::model::Model;
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-static VERTEX_DATA: [GLfloat; 20] = [
-// pos        uv
-	 1.0, -1.0, 0.0,
-	-1.0, -1.0, 0.0,
-	 1.0,  1.0, 0.0,
-	-1.0,  1.0, 0.0,
-	1.0, 0.0,
-	0.0, 0.0,
-	1.0, 1.0,
-	0.0, 1.0,
-];
-
 #[derive(Debug)]
 pub struct Renderer {
-	vertex_buffer: GLBuffer,
 	vertex_array: GLVertexArray,
+	vertex_buffer: GLBuffer,
+	index_buffer: GLBuffer,
 	pbr_program: GLProgram,
+	count_vertices: usize,
 }
 
 impl Renderer {
-	pub fn new(window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>) -> Renderer {
+	pub fn new(window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>, model: &Model) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 
 		gl_utils::print_opengl_diagnostics();
@@ -38,52 +27,6 @@ impl Renderer {
 
 		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
 
-		let buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &VERTEX_DATA);
-
-		let mut vertex_array = GLVertexArray::new();
-		vertex_array.bind();
-		vertex_array.add_attribute(&buffer, program.get_attribute("position"), 0);
-		vertex_array.add_attribute(&buffer, program.get_attribute("uv"), 3 * 4);
-
-		vertex_array.enable_attributes();
-
-		program.get_uniform("time").set_1f(1.0_f32);
-
-		Renderer {
-			vertex_buffer: buffer,
-			vertex_array,
-			pbr_program: program,
-		}
-	}
-
-	pub fn render(&self, camera: &Camera) {
-		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
-		gl_clear(true, true, true);
-
-		let proj: [f32; 16] = {
-			let transmute_me: [[f32; 4]; 4] = camera.projection().into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
-
-		let view: [f32; 16] = {
-			let transmute_me: [[f32; 4]; 4] = camera.view().into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
-
-		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
-		self.pbr_program.get_uniform("view").set_mat4f(&view);
-
-		gl_draw_arrays(DrawMode::TriangleStrip, 0, 4);
-
-		// gl::DrawElements()
-
-		// void glDrawElements(	GLenum mode,
-		// 	GLsizei count,
-		// 	GLenum type,
-		// 	const GLvoid * indices);
-	}
-
-	pub fn submit_model(&mut self, model: &Model) {
 		let mut buffer = Vec::<f32>::new();
 
 		for position in &model.positions {
@@ -103,12 +46,12 @@ impl Renderer {
 		vertex_array.bind();
 		vertex_array.add_attribute(
 			&vertex_buffer,
-			self.pbr_program.get_attribute("position"),
+			program.get_attribute("position"),
 			0,
 		);
 		vertex_array.add_attribute(
 			&vertex_buffer,
-			self.pbr_program.get_attribute("uv"),
+			program.get_attribute("uv"),
 			model.positions.len() * 3,
 		);
 
@@ -120,5 +63,41 @@ impl Renderer {
 		);
 
 		vertex_array.enable_attributes();
+
+		program.get_uniform("time").set_1f(1.0_f32);
+
+		Renderer {
+			vertex_array,
+			vertex_buffer,
+			index_buffer,
+			pbr_program: program,
+			count_vertices: model.indices.len(),
+		}
 	}
+
+	pub fn render(&self, camera: &Camera) {
+		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
+		gl_clear(true, true, true);
+
+		self.vertex_array.bind();
+		self.vertex_buffer.bind();
+		self.index_buffer.bind();
+		self.pbr_program.bind();
+
+		let proj: [f32; 16] = {
+			let transmute_me: [[f32; 4]; 4] = camera.projection().into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
+
+		let view: [f32; 16] = {
+			let transmute_me: [[f32; 4]; 4] = camera.view().into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
+
+		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
+		self.pbr_program.get_uniform("view").set_mat4f(&view);
+
+		gl_draw_elements(DrawMode::TriangleStrip, self.count_vertices, IndexKind::UnsignedInt, 0);
+	}
+
 }
