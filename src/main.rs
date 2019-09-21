@@ -9,7 +9,7 @@ use nalgebra_glm as glm;
 
 mod scene;
 use scene::camera::*;
-use scene::model::Model;
+use scene::model::Mesh;
 
 #[derive(Debug)]
 #[allow(non_snake_case)]
@@ -66,9 +66,9 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), -90.0, 0.0);
-
-	renderer.submit_model(&Model::new("assets/models/cube.glb"));
-	renderer.submit_model(&Model::new("assets/models/curve.glb"));
+	// Model::info("assets/models/sponza.glb");
+	// renderer.submit_mesh(&Mesh::new("assets/models/cube.glb"));
+	renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb"));
 
 	let mut key_states = KeyStates::new();
 

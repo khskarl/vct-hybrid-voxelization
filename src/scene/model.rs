@@ -1,66 +1,78 @@
 use image;
 use image::ImageFormat::{JPEG, PNG};
 
-pub struct Model {
+pub struct Mesh {
+	primitives: Vec<Primitive>,
+}
+
+impl Mesh {
+	pub fn new(path: &str) -> Mesh {
+		let gltf_document = gltf::import(path);
+		let (gltf, buffers, _) = gltf_document.unwrap();
+
+		let mut primitives = Vec::<Primitive>::new();
+
+		for gltf_mesh in gltf.meshes() {
+			for gltf_primitive in gltf_mesh.primitives() {
+				primitives.push(Primitive::new(&buffers, &gltf_primitive));
+			}
+		}
+
+		Mesh { primitives }
+	}
+
+	pub fn primitives(&self) -> &Vec<Primitive> {
+		&self.primitives
+	}
+}
+
+pub struct Primitive {
 	pub positions: Vec<[f32; 3]>,
 	pub tex_coords: Vec<[f32; 2]>,
 	pub indices: Vec<u32>,
 	pub color_texture: image::DynamicImage,
 }
 
-impl Model {
-	pub fn new(path: &str) -> Model {
-		let gltf_document = gltf::import(path);
-		let (gltf, buffers, _) = gltf_document.unwrap();
-
-		let mut meshes = Vec::<gltf::mesh::Mesh>::new();
-
-		for mesh in gltf.meshes() {
-			println!("[Mesh #{}]", mesh.index());
-			meshes.push(mesh);
-		}
-
-		let mesh = meshes.first().unwrap();
+impl Primitive {
+	pub fn new(buffers: &Vec<gltf::buffer::Data>, gltf_primitive: &gltf::Primitive) -> Primitive {
 		let mut positions = Vec::<[f32; 3]>::new();
 		let mut tex_coords = Vec::<[f32; 2]>::new();
 		let mut indices = Vec::<u32>::new();
 		let mut color_texture = image::DynamicImage::new_rgba8(64, 64);
 
-		for primitive in mesh.primitives() {
-			let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+		let reader = gltf_primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
-			if let Some(iter) = reader.read_positions() {
-				for vertex_position in iter {
-					positions.push(vertex_position);
-				}
+		if let Some(iter) = reader.read_positions() {
+			for vertex_position in iter {
+				positions.push(vertex_position);
 			}
-
-			if let Some(iter) = reader.read_tex_coords(0) {
-				for tex_coord in iter.into_f32() {
-					tex_coords.push(tex_coord);
-				}
-			}
-
-			if let Some(iter) = reader.read_indices() {
-				for index in iter.into_u32() {
-					indices.push(index);
-				}
-			}
-
-			let material = primitive.material();
-			let pbr_metallic_roughness = material.pbr_metallic_roughness();
-			let base_color_texture = pbr_metallic_roughness
-				.base_color_texture()
-				.unwrap()
-				.texture();
-
-			color_texture = load_gltf_texture(&buffers, base_color_texture);
 		}
+
+		if let Some(iter) = reader.read_tex_coords(0) {
+			for tex_coord in iter.into_f32() {
+				tex_coords.push(tex_coord);
+			}
+		}
+
+		if let Some(iter) = reader.read_indices() {
+			for index in iter.into_u32() {
+				indices.push(index);
+			}
+		}
+
+		let material = gltf_primitive.material();
+		let pbr_metallic_roughness = material.pbr_metallic_roughness();
+		let base_color_texture = pbr_metallic_roughness
+			.base_color_texture()
+			.unwrap()
+			.texture();
+
+		color_texture = load_gltf_texture(&buffers, base_color_texture);
 
 		println!("# vertices: {}", positions.len());
 		println!("# indices: {}", indices.len());
 
-		Model {
+		Primitive {
 			positions,
 			tex_coords,
 			indices,

@@ -2,12 +2,11 @@ use gl_helpers::*;
 
 use crate::gl_utils;
 use crate::scene::camera::*;
-use crate::scene::model::Model;
-use crate::gpu_model::GpuModel;
+use crate::scene::model::Mesh;
+use crate::gpu_model::GpuMesh;
 
-#[derive(Debug)]
 pub struct Renderer {
-	models: Vec<GpuModel>,
+	meshes: Vec<GpuMesh>,
 	pbr_program: GLProgram,
 }
 
@@ -35,7 +34,7 @@ impl Renderer {
 		program.get_uniform("time").set_1f(1.0_f32);
 
 		Renderer {
-			models: Vec::<GpuModel>::new(),
+			meshes: Vec::<GpuMesh>::new(),
 			pbr_program: program,
 		}
 	}
@@ -59,24 +58,26 @@ impl Renderer {
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
 
-		for model in &self.models {
-			model.bind();
-			self
-				.pbr_program
-				.get_uniform("albedo")
-				.set_sampler_2d(&model.color_texture(), 0);
+		for mesh in &self.meshes {
+			for primitive in mesh.primitives() {
+				primitive.bind();
+				self
+					.pbr_program
+					.get_uniform("albedo")
+					.set_sampler_2d(&primitive.color_texture(), 0);
 
-			gl_draw_elements(
-				DrawMode::Triangles,
-				model.count_vertices(),
-				IndexKind::UnsignedInt,
-				0,
-			);
+				gl_draw_elements(
+					DrawMode::Triangles,
+					primitive.count_vertices(),
+					IndexKind::UnsignedInt,
+					0,
+				);
+			}
 		}
 	}
 
-	pub fn submit_model(&mut self, model: &Model) {
-		let gpu_model = GpuModel::new(&model, &self.pbr_program);
-		self.models.push(gpu_model);
+	pub fn submit_mesh(&mut self, mesh: &Mesh) {
+		let gpu_mesh = GpuMesh::new(&mesh, &self.pbr_program);
+		self.meshes.push(gpu_mesh);
 	}
 }
