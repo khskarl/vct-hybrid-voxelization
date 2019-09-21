@@ -58,6 +58,10 @@ impl Renderer {
 
 		for model in &self.models {
 			model.bind();
+			self
+				.pbr_program
+				.get_uniform("albedo")
+				.set_sampler_2d(&model.color_texture(), 0);
 
 			gl_draw_elements(
 				DrawMode::Triangles,

@@ -6,6 +6,7 @@ pub struct GpuModel {
 	vertex_array: GLVertexArray,
 	vertex_buffer: GLBuffer,
 	index_buffer: GLBuffer,
+	color_texture: GLTexture,
 	count_vertices: usize,
 }
 
@@ -44,10 +45,13 @@ impl GpuModel {
 
 		vertex_array.enable_attributes();
 
+		let color_texture = load_gl_texture(&model.color_texture);
+
 		GpuModel {
 			vertex_array,
 			vertex_buffer,
 			index_buffer,
+			color_texture,
 			count_vertices: model.indices.len(),
 		}
 	}
@@ -56,9 +60,35 @@ impl GpuModel {
 		self.vertex_array.bind();
 		self.vertex_buffer.bind();
 		self.index_buffer.bind();
+		self.color_texture.bind();
 	}
 
 	pub const fn count_vertices(&self) -> usize {
 		self.count_vertices
 	}
+
+	pub const fn color_texture(&self) -> &GLTexture {
+		&self.color_texture
+	}
+}
+
+fn load_gl_texture(image: &image::DynamicImage) -> GLTexture {
+	use image::GenericImageView;
+
+	let (width, height) = image.dimensions();
+	let raw_pixels = &image.raw_pixels()[..];
+
+	let gl_texture = GLTexture::new_2d(
+		width as usize,
+		height as usize,
+		InternalFormat::RGB32F,
+		DataFormat::RGB,
+		DataKind::UnsignedByte,
+		FilterMode::Linear,
+		Wrap::Repeat,
+		true,
+		raw_pixels,
+	);
+
+	gl_texture
 }

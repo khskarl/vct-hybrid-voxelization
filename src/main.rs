@@ -42,7 +42,7 @@ impl KeyStates {
 }
 
 fn main() {
-	const WINDOW_TITLE: &str = "Lunar Renderer";
+	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
 	let logical_size = glutin::dpi::LogicalSize::new(800.0, 600.0);
 
 	let event_loop = glutin::event_loop::EventLoop::new();

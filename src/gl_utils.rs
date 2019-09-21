@@ -10,6 +10,7 @@ pub static VS_SRC: &'static str = "
 
     uniform mat4 proj;
     uniform mat4 view;
+    uniform sampler2D albedo;
 
     layout (location = 0) in vec3 position;
     layout (location = 1) in vec2 uv;
@@ -28,13 +29,15 @@ pub static FS_SRC: &'static str = "
     uniform mat4 proj;
     uniform mat4 view;
     uniform float time;
+    uniform sampler2D albedo;
 
     in vec2 v_uv;
 
     out vec4 out_color;
 
     void main() {
-        out_color = vec4(v_uv, sin(time), 1.0);
+        vec2 uv = vec2(v_uv.x + sin(time), v_uv.y);
+        out_color = texture2D(albedo, uv);
     }
 ";
 
