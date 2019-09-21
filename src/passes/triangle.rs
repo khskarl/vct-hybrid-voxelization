@@ -151,12 +151,10 @@ where
 
 		let mut vertices = Vec::<PosTex>::new();
 		for i in 0..model.positions.len() {
-			vertices.push(
-				PosTex{
-					position: model.positions[i].into(),
-					tex_coord: model.tex_coords[i].into(),
-				}
-			)
+			vertices.push(PosTex {
+				position: model.positions[i].into(),
+				tex_coord: model.tex_coords[i].into(),
+			})
 		}
 
 		let cube_mesh = Mesh::<B>::builder()

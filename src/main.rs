@@ -67,7 +67,7 @@ fn main() {
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
 
-	let model = Model::new("assets/models/box.gltf");
+	let model = Model::new("assets/models/cube.glb");
 	renderer.submit_model(&model);
 
 	let mut key_states = KeyStates::new();
@@ -89,12 +89,11 @@ fn main() {
 					window_gl.resize(logical_size.to_physical(dpi_factor));
 				}
 				WindowEvent::KeyboardInput {
-					input:
-						KeyboardInput {
-							state: state,
-							virtual_keycode: Some(key),
-							..
-						},
+					input: KeyboardInput {
+						state,
+						virtual_keycode: Some(key),
+						..
+					},
 					..
 				} => {
 					use glutin::event::VirtualKeyCode::*;
@@ -127,6 +126,7 @@ fn main() {
 				let dt = target_dt;
 				let move_rate = 5.0; // m/s
 				let rotation_rate = 60.0; // Degrees/s
+
 				use glutin::event::ElementState::Pressed;
 				if key_states.A == Pressed {
 					camera.move_right(-move_rate * dt)

@@ -45,10 +45,15 @@ impl Model {
 				}
 			}
 
-			// let material = primitive.material().clone();
-			// let pbr_metallic_roughness = material.pbr_metallic_roughness();
-			// texture = pbr_metallic_roughness.base_color_texture().unwrap().texture().clone();
-			// println!("Material: {}", pbr_metallic_roughness.index().unwrap());
+			let material = primitive.material();
+			let pbr_metallic_roughness = material.pbr_metallic_roughness();
+			let color_image = pbr_metallic_roughness
+				.base_color_texture()
+				.unwrap()
+				.texture()
+				.source();
+
+			println!("Color texture: {:?}", color_image.name());
 		}
 
 		println!("# vertices: {}", positions.len());
