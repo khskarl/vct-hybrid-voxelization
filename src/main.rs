@@ -2,6 +2,7 @@ use std::str;
 use std::time::Instant;
 
 mod gl_utils;
+mod gpu_model;
 mod renderer;
 
 use nalgebra_glm as glm;
@@ -57,8 +58,7 @@ fn main() {
 		unsafe { window_gl.make_current() }.unwrap()
 	};
 
-	let model = Model::new("assets/models/box.gltf");
-	let renderer = renderer::Renderer::new(&window_gl, logical_size, &model);
+	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
 	{
 		let logical_size = window_gl.window().inner_size();
 		let dpi_factor = window_gl.window().hidpi_factor();
@@ -66,6 +66,9 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
+
+	let model = Model::new("assets/models/box.gltf");
+	renderer.submit_model(&model);
 
 	let mut key_states = KeyStates::new();
 
