@@ -20,7 +20,7 @@ impl Camera {
 	pub fn projection(&self) -> glm::Mat4 {
 		let mut proj = glm::perspective_rh(16.0 / 9.0, f32::to_radians(70.0), 0.01, 1000.0);
 		proj[(0, 0)] *= -1.0;
-		proj[(1, 1)] *= -1.0;
+		// proj[(1, 1)] *= -1.0;
 		proj
 	}
 
@@ -45,9 +45,9 @@ impl Camera {
 		let yaw_rad = f32::to_radians(self.yaw);
 
 		glm::make_vec3(&[
-			yaw_rad.sin() * pitch_rad.cos(),
+			pitch_rad.cos() * yaw_rad.cos(),
 			pitch_rad.sin(),
-			yaw_rad.cos() * pitch_rad.cos(),
+			pitch_rad.cos() * yaw_rad.sin(),
 		])
 	}
 
@@ -55,6 +55,7 @@ impl Camera {
 		self.position += self.right() * amount
 	}
 
+	#[allow(dead_code)]
 	pub fn move_up(&mut self, amount: f32) {
 		self.position += self.up() * amount
 	}
@@ -68,13 +69,15 @@ impl Camera {
 	}
 
 	pub fn rotate_right(&mut self, amount: f32) {
-		self.yaw += amount
+		self.yaw -= amount
 	}
 
+	#[allow(dead_code)]
 	pub fn near(&self) -> f32 {
 		(self.projection()[(2, 3)] / (self.projection()[(2, 2)] - 1.0))
 	}
 
+	#[allow(dead_code)]
 	pub fn far(&self) -> f32 {
 		((self.projection()[(2, 3)]) / (self.projection()[(2, 2)] + 1.0))
 	}

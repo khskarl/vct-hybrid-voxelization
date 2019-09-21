@@ -65,10 +65,10 @@ fn main() {
 		window_gl.resize(logical_size.to_physical(dpi_factor));
 	}
 
-	let mut camera = Camera::new(glm::vec3(0.0, 0.0, -3.0), 0.0, 0.0);
+	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), -90.0, 0.0);
 
-	let model = Model::new("assets/models/cube.glb");
-	renderer.submit_model(&model);
+	renderer.submit_model(&Model::new("assets/models/cube.glb"));
+	renderer.submit_model(&Model::new("assets/models/curve.glb"));
 
 	let mut key_states = KeyStates::new();
 

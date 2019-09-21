@@ -58,9 +58,6 @@ impl GpuModel {
 
 	pub fn bind(&self) {
 		self.vertex_array.bind();
-		self.vertex_buffer.bind();
-		self.index_buffer.bind();
-		self.color_texture.bind();
 	}
 
 	pub const fn count_vertices(&self) -> usize {
@@ -75,6 +72,7 @@ impl GpuModel {
 fn load_gl_texture(image: &image::DynamicImage) -> GLTexture {
 	use image::GenericImageView;
 
+	let image = image.flipv();
 	let (width, height) = image.dimensions();
 	let raw_pixels = &image.raw_pixels()[..];
 

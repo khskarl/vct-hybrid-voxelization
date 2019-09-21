@@ -20,6 +20,9 @@ impl Renderer {
 
 		gl_utils::print_opengl_diagnostics();
 		gl_set_defaults();
+		unsafe {
+			gl::FrontFace(gl::CW);
+		}
 		gl_set_viewport(
 			0,
 			0,
