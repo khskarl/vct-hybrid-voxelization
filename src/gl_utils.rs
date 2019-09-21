@@ -36,7 +36,7 @@ pub static FS_SRC: &'static str = "
     out vec4 out_color;
 
     void main() {
-        vec2 uv = vec2(v_uv.x + sin(time), v_uv.y);
+        vec2 uv = vec2(v_uv.x + sin(time) * 0.001, v_uv.y);
         out_color = texture2D(albedo, uv);
     }
 ";

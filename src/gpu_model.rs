@@ -92,7 +92,7 @@ impl GpuPrimitive {
 fn load_gl_texture(image: &image::DynamicImage) -> GLTexture {
 	use image::GenericImageView;
 
-	let image = image.flipv();
+	// let image = image.flipv();
 	let (width, height) = image.dimensions();
 	let raw_pixels = &image.raw_pixels()[..];
 

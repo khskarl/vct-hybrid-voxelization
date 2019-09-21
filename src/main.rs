@@ -66,8 +66,7 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), -90.0, 0.0);
-	// Model::info("assets/models/sponza.glb");
-	// renderer.submit_mesh(&Mesh::new("assets/models/cube.glb"));
+	renderer.submit_mesh(&Mesh::new("assets/models/cube.glb"));
 	renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb"));
 
 	let mut key_states = KeyStates::new();

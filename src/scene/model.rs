@@ -69,8 +69,8 @@ impl Primitive {
 
 		color_texture = load_gltf_texture(&buffers, base_color_texture);
 
-		println!("# vertices: {}", positions.len());
-		println!("# indices: {}", indices.len());
+		// println!("# vertices: {}", positions.len());
+		// println!("# indices: {}", indices.len());
 
 		Primitive {
 			positions,
