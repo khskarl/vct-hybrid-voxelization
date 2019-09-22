@@ -1,9 +1,10 @@
 use gl_helpers::*;
-
 use crate::gl_utils;
 use crate::scene::camera::*;
 use crate::scene::model::Mesh;
 use crate::gpu_model::GpuMesh;
+
+use std::fs;
 
 pub struct Renderer {
 	meshes: Vec<GpuMesh>,
@@ -29,7 +30,11 @@ impl Renderer {
 			logical_size.height as usize,
 		);
 
-		let program = GLProgram::new(gl_utils::VS_SRC, gl_utils::FS_SRC);
+		let vs_src =
+			fs::read_to_string("src/shaders/pbr.vs").expect("Couldn't read the vertex shader :(");
+		let fs_src =
+			fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
+		let program = GLProgram::new(&vs_src[..], &fs_src[..]);
 
 		program.get_uniform("time").set_1f(1.0_f32);
 

@@ -88,6 +88,7 @@ impl Primitive {
 		}
 	}
 
+	#[allow(dead_code)]
 	pub fn info(path: &str) {
 		let (gltf, _buffers, _images) = gltf::import(path).unwrap();
 
