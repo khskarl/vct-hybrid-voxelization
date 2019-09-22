@@ -205,7 +205,7 @@ fn fetch_gltf_texture(
 		let key = texture.name().unwrap();
 
 		if let Some(texture_rc) = resources.textures.get(key) {
-			println!("Fetching texture '{}'...", key);
+			// println!("Fetching texture '{}'...", key);
 			return Rc::clone(texture_rc);
 		}
 	}
@@ -213,11 +213,11 @@ fn fetch_gltf_texture(
 	let texture = load_gltf_texture(&buffers, texture);
 	let key = ImageHash::hash(texture.image(), 8, HashType::Gradient).to_base64();
 	if let Some(texture_rc) = resources.textures.get(&key) {
-		println!("Fetching texture '{}'...", key);
+		// println!("Fetching texture '{}'...", key);
 		return Rc::clone(texture_rc);
 	}
 
-	println!("Loading texture '{}'...", key);
+	// println!("Loading texture '{}'...", key);
 
 	let texture_rc = Rc::new(texture);
 	resources.textures.insert(key, Rc::clone(&texture_rc));
