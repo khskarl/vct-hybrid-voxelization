@@ -67,15 +67,7 @@ impl Primitive {
 			}
 		}
 
-		let material = gltf_primitive.material();
-		let pbr_metallic_roughness = material.pbr_metallic_roughness();
-		let base_color_texture = pbr_metallic_roughness
-			.base_color_texture()
-			.unwrap()
-			.texture();
-
-		let color_texture = load_gltf_texture(&buffers, base_color_texture);
-
+		let material = load_gltf_material(&buffers, gltf_primitive.material());
 		// println!("# vertices: {}", positions.len());
 		// println!("# indices: {}", indices.len());
 
@@ -84,7 +76,7 @@ impl Primitive {
 			tex_coords,
 			normals,
 			indices,
-			color_texture,
+			material,
 		}
 	}
 
@@ -116,6 +108,25 @@ impl Primitive {
 			println!("  Alpha Mode: {:?}", material.alpha_mode());
 		}
 	}
+}
+
+fn load_gltf_material(buffers: &Vec<gltf::buffer::Data>, material: gltf::Material<'_>) {
+	let pbr_metallic_roughness = material.pbr_metallic_roughness();
+	let base_color_texture = pbr_metallic_roughness
+		.base_color_texture()
+		.unwrap()
+		.texture();
+
+	let metallic_roughness_texture = pbr_metallic_roughness
+		.metallic_roughness_texture()
+		.unwrap()
+		.texture();
+
+	let normal_texture = material.normal_texture().unwrap().texture();
+
+	let color_texture_image = load_gltf_texture(&buffers, base_color_texture);
+	let metallic_roughness_texture_image = load_gltf_texture(&buffers, metallic_roughness_texture)
+
 }
 
 fn load_gltf_texture(
