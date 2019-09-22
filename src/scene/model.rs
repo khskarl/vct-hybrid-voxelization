@@ -29,6 +29,7 @@ impl Mesh {
 pub struct Primitive {
 	pub positions: Vec<[f32; 3]>,
 	pub tex_coords: Vec<[f32; 2]>,
+	pub normals: Vec<[f32; 3]>,
 	pub indices: Vec<u32>,
 	pub color_texture: image::DynamicImage,
 }
@@ -37,8 +38,8 @@ impl Primitive {
 	pub fn new(buffers: &Vec<gltf::buffer::Data>, gltf_primitive: &gltf::Primitive) -> Primitive {
 		let mut positions = Vec::<[f32; 3]>::new();
 		let mut tex_coords = Vec::<[f32; 2]>::new();
+		let mut normals = Vec::<[f32; 3]>::new();
 		let mut indices = Vec::<u32>::new();
-		let mut color_texture = image::DynamicImage::new_rgba8(64, 64);
 
 		let reader = gltf_primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
@@ -51,6 +52,12 @@ impl Primitive {
 		if let Some(iter) = reader.read_tex_coords(0) {
 			for tex_coord in iter.into_f32() {
 				tex_coords.push(tex_coord);
+			}
+		}
+
+		if let Some(iter) = reader.read_normals() {
+			for normal in iter {
+				normals.push(normal);
 			}
 		}
 
@@ -67,7 +74,7 @@ impl Primitive {
 			.unwrap()
 			.texture();
 
-		color_texture = load_gltf_texture(&buffers, base_color_texture);
+		let color_texture = load_gltf_texture(&buffers, base_color_texture);
 
 		// println!("# vertices: {}", positions.len());
 		// println!("# indices: {}", indices.len());
@@ -75,6 +82,7 @@ impl Primitive {
 		Primitive {
 			positions,
 			tex_coords,
+			normals,
 			indices,
 			color_texture,
 		}

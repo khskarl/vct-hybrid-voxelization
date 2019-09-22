@@ -45,15 +45,26 @@ impl GpuPrimitive {
 			buffer.push(tex_coord[1]);
 		}
 
+		for normal in &primitive.normals {
+			buffer.push(normal[0]);
+			buffer.push(normal[1]);
+			buffer.push(normal[2]);
+		}
+
 		let vertex_buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &buffer);
 
 		let mut vertex_array = GLVertexArray::new();
 		vertex_array.bind();
-		vertex_array.add_attribute(&vertex_buffer, program.get_attribute("position"), 0);
+		vertex_array.add_attribute(&vertex_buffer, program.get_attribute("aPosition"), 0);
 		vertex_array.add_attribute(
 			&vertex_buffer,
-			program.get_attribute("uv"),
+			program.get_attribute("aTexCoord"),
 			primitive.positions.len() * 3,
+		);
+		vertex_array.add_attribute(
+			&vertex_buffer,
+			program.get_attribute("aNormal"),
+			primitive.positions.len() * 3 + primitive.tex_coords.len() * 2,
 		);
 
 		let index_buffer = GLBuffer::new(
@@ -92,7 +103,6 @@ impl GpuPrimitive {
 fn load_gl_texture(image: &image::DynamicImage) -> GLTexture {
 	use image::GenericImageView;
 
-	// let image = image.flipv();
 	let (width, height) = image.dimensions();
 	let raw_pixels = &image.raw_pixels()[..];
 
