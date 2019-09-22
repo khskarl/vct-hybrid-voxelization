@@ -1,8 +1,8 @@
-use gl_helpers::*;
 use crate::gl_utils;
+use crate::gpu_model::GpuMesh;
 use crate::scene::camera::*;
 use crate::scene::model::Mesh;
-use crate::gpu_model::GpuMesh;
+use gl_helpers::*;
 
 use std::fs;
 
@@ -66,10 +66,24 @@ impl Renderer {
 		for mesh in &self.meshes {
 			for primitive in mesh.primitives() {
 				primitive.bind();
+
+				let material = &primitive.material();
 				self
 					.pbr_program
 					.get_uniform("albedo")
-					.set_sampler_2d(&primitive.color_texture(), 0);
+					.set_sampler_2d(&material.albedo(), 0);
+				self
+					.pbr_program
+					.get_uniform("metaghness")
+					.set_sampler_2d(&material.metaghness(), 1);
+				self
+					.pbr_program
+					.get_uniform("normal")
+					.set_sampler_2d(&material.normal(), 2);
+				self
+					.pbr_program
+					.get_uniform("occlusion")
+					.set_sampler_2d(&material.occlusion(), 3);
 
 				gl_draw_elements(
 					DrawMode::Triangles,

@@ -1,6 +1,6 @@
 indent_style = "Block"
 use_small_heuristics = "Default"
-reorder_imports = false
+reorder_imports = true
 comment_width = 80
 hard_tabs = true
 tab_spaces = 2

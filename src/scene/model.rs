@@ -1,12 +1,31 @@
-use image;
+use crate::scene::material::{Material, MaterialBuilder};
 use image::ImageFormat::{JPEG, PNG};
+
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use img_hash::{HashType, ImageHash};
+
+pub struct Resources {
+	textures: HashMap<String, Rc<image::DynamicImage>>,
+	materials: HashMap<String, Rc<Material>>,
+}
+
+impl Resources {
+	pub fn new() -> Resources {
+		Resources {
+			textures: HashMap::new(),
+			materials: HashMap::new(),
+		}
+	}
+}
 
 pub struct Mesh {
 	primitives: Vec<Primitive>,
 }
 
 impl Mesh {
-	pub fn new(path: &str) -> Mesh {
+	pub fn new(path: &str, resources: &mut Resources) -> Mesh {
 		let gltf_document = gltf::import(path);
 		let (gltf, buffers, _) = gltf_document.unwrap();
 
@@ -14,7 +33,8 @@ impl Mesh {
 
 		for gltf_mesh in gltf.meshes() {
 			for gltf_primitive in gltf_mesh.primitives() {
-				primitives.push(Primitive::new(&buffers, &gltf_primitive));
+				let primitive = Primitive::new(&buffers, &gltf_primitive, resources);
+				primitives.push(primitive);
 			}
 		}
 
@@ -31,11 +51,15 @@ pub struct Primitive {
 	pub tex_coords: Vec<[f32; 2]>,
 	pub normals: Vec<[f32; 3]>,
 	pub indices: Vec<u32>,
-	pub color_texture: image::DynamicImage,
+	pub material: Rc<Material>,
 }
 
 impl Primitive {
-	pub fn new(buffers: &Vec<gltf::buffer::Data>, gltf_primitive: &gltf::Primitive) -> Primitive {
+	pub fn new(
+		buffers: &Vec<gltf::buffer::Data>,
+		gltf_primitive: &gltf::Primitive,
+		resources: &mut Resources,
+	) -> Primitive {
 		let mut positions = Vec::<[f32; 3]>::new();
 		let mut tex_coords = Vec::<[f32; 2]>::new();
 		let mut normals = Vec::<[f32; 3]>::new();
@@ -67,7 +91,7 @@ impl Primitive {
 			}
 		}
 
-		let material = load_gltf_material(&buffers, gltf_primitive.material());
+		let material = fetch_gltf_material(&buffers, gltf_primitive.material(), resources);
 		// println!("# vertices: {}", positions.len());
 		// println!("# indices: {}", indices.len());
 
@@ -110,23 +134,92 @@ impl Primitive {
 	}
 }
 
-fn load_gltf_material(buffers: &Vec<gltf::buffer::Data>, material: gltf::Material<'_>) {
+fn fetch_gltf_material(
+	buffers: &Vec<gltf::buffer::Data>,
+	material: gltf::Material<'_>,
+	resources: &mut Resources,
+) -> Rc<Material> {
+	let key = material
+		.name()
+		.expect("We don't support unnamed materials :(")
+		.to_owned();
+
+	if let Some(material_rc) = resources.materials.get(&key) {
+		println!("Fetching material '{}'...", key);
+		return Rc::clone(material_rc);
+	} else {
+		println!("Loading material '{}'...", key);
+
+		let material_rc = Rc::new(load_gltf_material(&buffers, material, resources));
+		resources
+			.materials
+			.insert(key.to_owned(), Rc::clone(&material_rc));
+
+		return Rc::clone(&material_rc);
+	}
+}
+
+fn load_gltf_material(
+	buffers: &Vec<gltf::buffer::Data>,
+	material: gltf::Material<'_>,
+	resources: &mut Resources,
+) -> Material {
+	let mut material_builder = MaterialBuilder::new();
 	let pbr_metallic_roughness = material.pbr_metallic_roughness();
-	let base_color_texture = pbr_metallic_roughness
-		.base_color_texture()
-		.unwrap()
-		.texture();
 
-	let metallic_roughness_texture = pbr_metallic_roughness
-		.metallic_roughness_texture()
-		.unwrap()
-		.texture();
+	let base_color_texture = pbr_metallic_roughness.base_color_texture();
+	let metallic_roughness_texture = pbr_metallic_roughness.metallic_roughness_texture();
+	let normal_texture = material.normal_texture();
+	let occlusion_texture = material.occlusion_texture();
 
-	let normal_texture = material.normal_texture().unwrap().texture();
+	if let Some(base_color_texture) = base_color_texture {
+		let img = fetch_gltf_texture(buffers, base_color_texture.texture(), resources);
+		material_builder = material_builder.albedo_tex(img);
+	}
 
-	let color_texture_image = load_gltf_texture(&buffers, base_color_texture);
-	let metallic_roughness_texture_image = load_gltf_texture(&buffers, metallic_roughness_texture)
+	if let Some(metaghness) = metallic_roughness_texture {
+		let img = fetch_gltf_texture(buffers, metaghness.texture(), resources);
+		material_builder = material_builder.metaghness_tex(img);
+	}
 
+	if let Some(normal_texture) = normal_texture {
+		let img = fetch_gltf_texture(buffers, normal_texture.texture(), resources);
+		material_builder = material_builder.normal_tex(img);
+	}
+
+	if let Some(occlusion_texture) = occlusion_texture {
+		let img = fetch_gltf_texture(buffers, occlusion_texture.texture(), resources);
+		material_builder = material_builder.occlusion_tex(img);
+	}
+
+	material_builder.build()
+}
+
+fn fetch_gltf_texture(
+	buffers: &Vec<gltf::buffer::Data>,
+	texture: gltf::Texture<'_>,
+	resources: &mut Resources,
+) -> Rc<image::DynamicImage> {
+	// let key = match texture.name() {
+	// 	Some(name) => name.to_owned(),
+	// 	None => "lol".to_owned(),
+	// };
+
+	let key = texture.name().unwrap_or("NO NAME").to_owned();
+
+	if let Some(texture_rc) = resources.textures.get(&key) {
+		println!("Fetching texture '{}'...", key);
+		return Rc::clone(texture_rc);
+	} else {
+		println!("Loading texture '{}'...", key);
+
+		let texture_rc = Rc::new(load_gltf_texture(&buffers, texture));
+		resources
+			.textures
+			.insert(key.to_owned(), Rc::clone(&texture_rc));
+
+		return Rc::clone(&texture_rc);
+	}
 }
 
 fn load_gltf_texture(

@@ -1,5 +1,37 @@
-use gl_helpers::*;
+use crate::scene::material::Material;
 use crate::scene::model::{Mesh, Primitive};
+use gl_helpers::*;
+
+pub struct GpuMaterial {
+	albedo: GLTexture,
+	metaghness: GLTexture,
+	normal: GLTexture,
+	occlusion: GLTexture,
+}
+
+impl GpuMaterial {
+	pub fn from_material(material: &Material) -> GpuMaterial {
+		GpuMaterial {
+			albedo: load_gl_texture(&material.albedo()),
+			metaghness: load_gl_texture(&material.metaghness()),
+			normal: load_gl_texture(&material.normal()),
+			occlusion: load_gl_texture(&material.occlusion()),
+		}
+	}
+
+	pub fn albedo(&self) -> &GLTexture {
+		&self.albedo
+	}
+	pub fn metaghness(&self) -> &GLTexture {
+		&self.metaghness
+	}
+	pub fn normal(&self) -> &GLTexture {
+		&self.normal
+	}
+	pub fn occlusion(&self) -> &GLTexture {
+		&self.occlusion
+	}
+}
 
 pub struct GpuMesh {
 	primitives: Vec<GpuPrimitive>,
@@ -21,12 +53,11 @@ impl GpuMesh {
 	}
 }
 
-#[derive(Debug)]
 pub struct GpuPrimitive {
 	vertex_array: GLVertexArray,
 	vertex_buffer: GLBuffer,
 	index_buffer: GLBuffer,
-	color_texture: GLTexture,
+	material: GpuMaterial,
 	count_vertices: usize,
 }
 
@@ -76,13 +107,13 @@ impl GpuPrimitive {
 
 		vertex_array.enable_attributes();
 
-		let color_texture = load_gl_texture(&primitive.color_texture);
+		let material = GpuMaterial::from_material(&primitive.material);
 
 		GpuPrimitive {
 			vertex_array,
 			vertex_buffer,
 			index_buffer,
-			color_texture,
+			material,
 			count_vertices: primitive.indices.len(),
 		}
 	}
@@ -95,8 +126,8 @@ impl GpuPrimitive {
 		self.count_vertices
 	}
 
-	pub const fn color_texture(&self) -> &GLTexture {
-		&self.color_texture
+	pub fn material(&self) -> &GpuMaterial {
+		&self.material()
 	}
 }
 

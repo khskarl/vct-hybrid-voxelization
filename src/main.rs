@@ -9,7 +9,7 @@ use nalgebra_glm as glm;
 
 mod scene;
 use scene::camera::*;
-use scene::model::Mesh;
+use scene::model::{Mesh, Resources};
 
 #[derive(Debug)]
 #[allow(non_snake_case)]
@@ -66,8 +66,11 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), -90.0, 0.0);
-	renderer.submit_mesh(&Mesh::new("assets/models/cube.glb"));
-	renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb"));
+	let mut resources = Resources::new();
+	let cube = Mesh::new("assets/models/cube.glb", &mut resources);
+	let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
+	// renderer.submit_mesh(&cube);
+	// renderer.submit_mesh(&sponza);
 
 	let mut key_states = KeyStates::new();
 
@@ -95,8 +98,8 @@ fn main() {
 					},
 					..
 				} => {
-					use glutin::event::VirtualKeyCode::*;
 					use glutin::event::ElementState::*;
+					use glutin::event::VirtualKeyCode::*;
 
 					match (key, state) {
 						(Escape, Released) => *control_flow = ControlFlow::Exit,

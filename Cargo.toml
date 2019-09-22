@@ -17,6 +17,10 @@ gl = "0.13.0"
 gl_helpers = { git = "https://gitlab.com/khskarl/rs-gl_helpers.git" }
 glutin = "0.22.0-alpha3"
 
+[dependencies.img_hash]
+version = "2.0"
+features = ["rust-image"]
+
 [profile.dev]
 opt-level = 0
 debug = true
@@ -24,3 +28,4 @@ debug = true
 [profile.release]
 opt-level = 3
 debug = true
+
