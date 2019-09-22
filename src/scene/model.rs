@@ -1,4 +1,4 @@
-use crate::scene::material::{Material, MaterialBuilder};
+use crate::scene::material::{Material, MaterialBuilder, Texture};
 use image::ImageFormat::{JPEG, PNG};
 
 use std::collections::HashMap;
@@ -7,7 +7,7 @@ use std::rc::Rc;
 use img_hash::{HashType, ImageHash};
 
 pub struct Resources {
-	textures: HashMap<String, Rc<image::DynamicImage>>,
+	textures: HashMap<String, Rc<Texture>>,
 	materials: HashMap<String, Rc<Material>>,
 }
 
@@ -164,7 +164,7 @@ fn load_gltf_material(
 	material: gltf::Material<'_>,
 	resources: &mut Resources,
 ) -> Material {
-	let mut material_builder = MaterialBuilder::new();
+	let mut material_builder = MaterialBuilder::new(material.name().expect("PLS WORK").to_owned());
 	let pbr_metallic_roughness = material.pbr_metallic_roughness();
 
 	let base_color_texture = pbr_metallic_roughness.base_color_texture();
@@ -173,23 +173,23 @@ fn load_gltf_material(
 	let occlusion_texture = material.occlusion_texture();
 
 	if let Some(base_color_texture) = base_color_texture {
-		let img = fetch_gltf_texture(buffers, base_color_texture.texture(), resources);
-		material_builder = material_builder.albedo_tex(img);
+		let texture = fetch_gltf_texture(buffers, base_color_texture.texture(), resources);
+		material_builder = material_builder.albedo_tex(texture);
 	}
 
 	if let Some(metaghness) = metallic_roughness_texture {
-		let img = fetch_gltf_texture(buffers, metaghness.texture(), resources);
-		material_builder = material_builder.metaghness_tex(img);
+		let texture = fetch_gltf_texture(buffers, metaghness.texture(), resources);
+		material_builder = material_builder.metaghness_tex(texture);
 	}
 
 	if let Some(normal_texture) = normal_texture {
-		let img = fetch_gltf_texture(buffers, normal_texture.texture(), resources);
-		material_builder = material_builder.normal_tex(img);
+		let texture = fetch_gltf_texture(buffers, normal_texture.texture(), resources);
+		material_builder = material_builder.normal_tex(texture);
 	}
 
 	if let Some(occlusion_texture) = occlusion_texture {
-		let img = fetch_gltf_texture(buffers, occlusion_texture.texture(), resources);
-		material_builder = material_builder.occlusion_tex(img);
+		let texture = fetch_gltf_texture(buffers, occlusion_texture.texture(), resources);
+		material_builder = material_builder.occlusion_tex(texture);
 	}
 
 	material_builder.build()
@@ -199,7 +199,7 @@ fn fetch_gltf_texture(
 	buffers: &Vec<gltf::buffer::Data>,
 	texture: gltf::Texture<'_>,
 	resources: &mut Resources,
-) -> Rc<image::DynamicImage> {
+) -> Rc<Texture> {
 	// let key = match texture.name() {
 	// 	Some(name) => name.to_owned(),
 	// 	None => "lol".to_owned(),
@@ -222,10 +222,7 @@ fn fetch_gltf_texture(
 	}
 }
 
-fn load_gltf_texture(
-	buffers: &Vec<gltf::buffer::Data>,
-	texture: gltf::Texture<'_>,
-) -> image::DynamicImage {
+fn load_gltf_texture(buffers: &Vec<gltf::buffer::Data>, texture: gltf::Texture<'_>) -> Texture {
 	use gltf::image::*;
 
 	let img = match texture.source().source() {
@@ -250,5 +247,5 @@ fn load_gltf_texture(
 
 	let dyn_img = img.expect("Failed to load image to CPU memory");
 
-	dyn_img
+	Texture::new("PLACEHOLDER".to_owned(), dyn_img)
 }

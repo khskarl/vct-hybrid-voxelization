@@ -2,67 +2,22 @@ use crate::scene::material::Material;
 use crate::scene::model::{Mesh, Primitive};
 use gl_helpers::*;
 
-pub struct GpuMaterial {
-	albedo: GLTexture,
-	metaghness: GLTexture,
-	normal: GLTexture,
-	occlusion: GLTexture,
-}
-
-impl GpuMaterial {
-	pub fn from_material(material: &Material) -> GpuMaterial {
-		GpuMaterial {
-			albedo: load_gl_texture(&material.albedo()),
-			metaghness: load_gl_texture(&material.metaghness()),
-			normal: load_gl_texture(&material.normal()),
-			occlusion: load_gl_texture(&material.occlusion()),
-		}
-	}
-
-	pub fn albedo(&self) -> &GLTexture {
-		&self.albedo
-	}
-	pub fn metaghness(&self) -> &GLTexture {
-		&self.metaghness
-	}
-	pub fn normal(&self) -> &GLTexture {
-		&self.normal
-	}
-	pub fn occlusion(&self) -> &GLTexture {
-		&self.occlusion
-	}
-}
-
-pub struct GpuMesh {
-	primitives: Vec<GpuPrimitive>,
-}
-
-impl GpuMesh {
-	pub fn new(model: &Mesh, program: &GLProgram) -> GpuMesh {
-		let mut primitives = Vec::<GpuPrimitive>::new();
-
-		for mesh in model.primitives() {
-			primitives.push(GpuPrimitive::new(&mesh, &program));
-		}
-
-		GpuMesh { primitives }
-	}
-
-	pub fn primitives(&self) -> &Vec<GpuPrimitive> {
-		&self.primitives
-	}
-}
+use std::rc::Rc;
 
 pub struct GpuPrimitive {
 	vertex_array: GLVertexArray,
 	vertex_buffer: GLBuffer,
 	index_buffer: GLBuffer,
-	material: GpuMaterial,
 	count_vertices: usize,
+	material: Rc<GpuMaterial>,
 }
 
 impl GpuPrimitive {
-	pub fn new(primitive: &Primitive, program: &GLProgram) -> GpuPrimitive {
+	pub fn new(
+		primitive: &Primitive,
+		program: &GLProgram,
+		material: Rc<GpuMaterial>,
+	) -> GpuPrimitive {
 		let mut buffer = Vec::<f32>::new();
 
 		for position in &primitive.positions {
@@ -107,14 +62,12 @@ impl GpuPrimitive {
 
 		vertex_array.enable_attributes();
 
-		let material = GpuMaterial::from_material(&primitive.material);
-
 		GpuPrimitive {
 			vertex_array,
 			vertex_buffer,
 			index_buffer,
-			material,
 			count_vertices: primitive.indices.len(),
+			material,
 		}
 	}
 
@@ -126,28 +79,43 @@ impl GpuPrimitive {
 		self.count_vertices
 	}
 
-	pub fn material(&self) -> &GpuMaterial {
-		&self.material()
+	pub const fn material(&self) -> &Rc<GpuMaterial> {
+		&self.material
 	}
 }
 
-fn load_gl_texture(image: &image::DynamicImage) -> GLTexture {
-	use image::GenericImageView;
+pub struct GpuMaterial {
+	albedo: Rc<GLTexture>,
+	metaghness: Rc<GLTexture>,
+	normal: Rc<GLTexture>,
+	occlusion: Rc<GLTexture>,
+}
 
-	let (width, height) = image.dimensions();
-	let raw_pixels = &image.raw_pixels()[..];
+impl GpuMaterial {
+	pub fn new(
+		albedo: Rc<GLTexture>,
+		metaghness: Rc<GLTexture>,
+		normal: Rc<GLTexture>,
+		occlusion: Rc<GLTexture>,
+	) -> GpuMaterial {
+		GpuMaterial {
+			albedo,
+			metaghness,
+			normal,
+			occlusion,
+		}
+	}
 
-	let gl_texture = GLTexture::new_2d(
-		width as usize,
-		height as usize,
-		InternalFormat::RGB32F,
-		DataFormat::RGB,
-		DataKind::UnsignedByte,
-		FilterMode::Linear,
-		Wrap::Repeat,
-		true,
-		raw_pixels,
-	);
-
-	gl_texture
+	pub fn albedo(&self) -> &Rc<GLTexture> {
+		&self.albedo
+	}
+	pub fn metaghness(&self) -> &Rc<GLTexture> {
+		&self.metaghness
+	}
+	pub fn normal(&self) -> &Rc<GLTexture> {
+		&self.normal
+	}
+	pub fn occlusion(&self) -> &Rc<GLTexture> {
+		&self.occlusion
+	}
 }

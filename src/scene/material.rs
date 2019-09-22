@@ -3,15 +3,17 @@ use image::{DynamicImage, ImageBuffer};
 use std::rc::Rc;
 
 pub struct MaterialBuilder {
-	albedo_tex: Option<Rc<DynamicImage>>,
-	normal_tex: Option<Rc<DynamicImage>>,
-	metaghness_tex: Option<Rc<DynamicImage>>,
-	occlusion_tex: Option<Rc<DynamicImage>>,
+	name: String,
+	albedo_tex: Option<Rc<Texture>>,
+	normal_tex: Option<Rc<Texture>>,
+	metaghness_tex: Option<Rc<Texture>>,
+	occlusion_tex: Option<Rc<Texture>>,
 }
 
 impl MaterialBuilder {
-	pub fn new() -> MaterialBuilder {
+	pub fn new(name: String) -> MaterialBuilder {
 		MaterialBuilder {
+			name,
 			albedo_tex: None,
 			normal_tex: None,
 			metaghness_tex: None,
@@ -19,22 +21,22 @@ impl MaterialBuilder {
 		}
 	}
 
-	pub fn albedo_tex(mut self, image: Rc<DynamicImage>) -> MaterialBuilder {
+	pub fn albedo_tex(mut self, image: Rc<Texture>) -> MaterialBuilder {
 		self.albedo_tex = Some(image);
 		self
 	}
 
-	pub fn metaghness_tex(mut self, image: Rc<DynamicImage>) -> MaterialBuilder {
+	pub fn metaghness_tex(mut self, image: Rc<Texture>) -> MaterialBuilder {
 		self.metaghness_tex = Some(image);
 		self
 	}
 
-	pub fn normal_tex(mut self, image: Rc<DynamicImage>) -> MaterialBuilder {
+	pub fn normal_tex(mut self, image: Rc<Texture>) -> MaterialBuilder {
 		self.normal_tex = Some(image);
 		self
 	}
 
-	pub fn occlusion_tex(mut self, image: Rc<DynamicImage>) -> MaterialBuilder {
+	pub fn occlusion_tex(mut self, image: Rc<Texture>) -> MaterialBuilder {
 		self.occlusion_tex = Some(image);
 		self
 	}
@@ -45,25 +47,28 @@ impl MaterialBuilder {
 		let normal = self.normal_tex.unwrap_or(Rc::new(default_normal()));
 		let occlusion = self.occlusion_tex.unwrap_or(Rc::new(default_occlusion()));
 
-		Material::new(albedo, metaghness, normal, occlusion)
+		Material::new(self.name, albedo, metaghness, normal, occlusion)
 	}
 }
 
 pub struct Material {
-	albedo: Rc<DynamicImage>,
-	metaghness: Rc<DynamicImage>,
-	normal: Rc<DynamicImage>,
-	occlusion: Rc<DynamicImage>,
+	name: String,
+	albedo: Rc<Texture>,
+	metaghness: Rc<Texture>,
+	normal: Rc<Texture>,
+	occlusion: Rc<Texture>,
 }
 
 impl Material {
 	pub fn new(
-		albedo: Rc<DynamicImage>,
-		metaghness: Rc<DynamicImage>,
-		normal: Rc<DynamicImage>,
-		occlusion: Rc<DynamicImage>,
+		name: String,
+		albedo: Rc<Texture>,
+		metaghness: Rc<Texture>,
+		normal: Rc<Texture>,
+		occlusion: Rc<Texture>,
 	) -> Material {
 		Material {
+			name,
 			albedo,
 			metaghness,
 			normal,
@@ -71,21 +76,24 @@ impl Material {
 		}
 	}
 
-	pub fn albedo(&self) -> &DynamicImage {
+	pub fn name(&self) -> &String {
+		&self.name
+	}
+	pub fn albedo(&self) -> &Texture {
 		&self.albedo
 	}
-	pub fn metaghness(&self) -> &DynamicImage {
+	pub fn metaghness(&self) -> &Texture {
 		&self.metaghness
 	}
-	pub fn normal(&self) -> &DynamicImage {
+	pub fn normal(&self) -> &Texture {
 		&self.normal
 	}
-	pub fn occlusion(&self) -> &DynamicImage {
+	pub fn occlusion(&self) -> &Texture {
 		&self.occlusion
 	}
 }
 
-fn default_albedo() -> DynamicImage {
+fn default_albedo() -> Texture {
 	let img = ImageBuffer::from_fn(1, 1, |x, y| {
 		if x % 2 == 0 {
 			image::Rgb([0u8, 0u8, 0u8])
@@ -93,10 +101,11 @@ fn default_albedo() -> DynamicImage {
 			image::Rgb([255u8, 255u8, 255u8])
 		}
 	});
-	DynamicImage::ImageRgb8(img)
+
+	Texture::new("default_albedo".to_owned(), DynamicImage::ImageRgb8(img))
 }
 
-fn default_metaghness() -> DynamicImage {
+fn default_metaghness() -> Texture {
 	let img = ImageBuffer::from_fn(256, 256, |x, y| {
 		if x % 2 == 0 {
 			image::Rgb([0u8, 0u8, 0u8])
@@ -105,15 +114,42 @@ fn default_metaghness() -> DynamicImage {
 		}
 	});
 
-	DynamicImage::ImageRgb8(img)
+	Texture::new(
+		"default_metaghness".to_owned(),
+		DynamicImage::ImageRgb8(img),
+	)
 }
 
-fn default_normal() -> DynamicImage {
+fn default_normal() -> Texture {
 	let img = ImageBuffer::from_fn(1, 1, |x, y| image::Rgb([0, 0, 255u8]));
-	DynamicImage::ImageRgb8(img)
+
+	Texture::new("default_normal".to_owned(), DynamicImage::ImageRgb8(img))
 }
 
-fn default_occlusion() -> DynamicImage {
+fn default_occlusion() -> Texture {
 	let img = ImageBuffer::from_fn(1, 1, |x, y| image::Luma([255u8]));
-	DynamicImage::ImageLuma8(img)
+
+	Texture::new(
+		"default_occlusion".to_owned(),
+		DynamicImage::ImageLuma8(img),
+	)
+}
+
+pub struct Texture {
+	name: String,
+	image: DynamicImage,
+}
+
+impl Texture {
+	pub fn new(name: String, image: DynamicImage) -> Texture {
+		Texture { name, image }
+	}
+
+	pub fn name(&self) -> &String {
+		&self.name
+	}
+
+	pub fn image(&self) -> &DynamicImage {
+		&self.image
+	}
 }

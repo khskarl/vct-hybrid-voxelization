@@ -69,7 +69,7 @@ fn main() {
 	let mut resources = Resources::new();
 	let cube = Mesh::new("assets/models/cube.glb", &mut resources);
 	let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
-	// renderer.submit_mesh(&cube);
+	renderer.submit_mesh(&cube);
 	// renderer.submit_mesh(&sponza);
 
 	let mut key_states = KeyStates::new();
