@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use img_hash::{HashType, ImageHash};
+extern crate img_hash;
 
 pub struct Resources {
 	textures: HashMap<String, Rc<Texture>>,
@@ -200,26 +201,28 @@ fn fetch_gltf_texture(
 	texture: gltf::Texture<'_>,
 	resources: &mut Resources,
 ) -> Rc<Texture> {
-	// let key = match texture.name() {
-	// 	Some(name) => name.to_owned(),
-	// 	None => "lol".to_owned(),
-	// };
+	if texture.name().is_some() {
+		let key = texture.name().unwrap();
 
-	let key = texture.name().unwrap_or("NO NAME").to_owned();
+		if let Some(texture_rc) = resources.textures.get(key) {
+			println!("Fetching texture '{}'...", key);
+			return Rc::clone(texture_rc);
+		}
+	}
 
+	let texture = load_gltf_texture(&buffers, texture);
+	let key = ImageHash::hash(texture.image(), 8, HashType::Gradient).to_base64();
 	if let Some(texture_rc) = resources.textures.get(&key) {
 		println!("Fetching texture '{}'...", key);
 		return Rc::clone(texture_rc);
-	} else {
-		println!("Loading texture '{}'...", key);
-
-		let texture_rc = Rc::new(load_gltf_texture(&buffers, texture));
-		resources
-			.textures
-			.insert(key.to_owned(), Rc::clone(&texture_rc));
-
-		return Rc::clone(&texture_rc);
 	}
+
+	println!("Loading texture '{}'...", key);
+
+	let texture_rc = Rc::new(texture);
+	resources.textures.insert(key, Rc::clone(&texture_rc));
+
+	return Rc::clone(&texture_rc);
 }
 
 fn load_gltf_texture(buffers: &Vec<gltf::buffer::Data>, texture: gltf::Texture<'_>) -> Texture {
@@ -247,5 +250,6 @@ fn load_gltf_texture(buffers: &Vec<gltf::buffer::Data>, texture: gltf::Texture<'
 
 	let dyn_img = img.expect("Failed to load image to CPU memory");
 
-	Texture::new("PLACEHOLDER".to_owned(), dyn_img)
+	let hash = ImageHash::hash(&dyn_img, 8, HashType::Gradient);
+	Texture::new(hash.to_base64(), dyn_img)
 }

@@ -153,7 +153,7 @@ impl Renderer {
 		}
 	}
 	fn load_texture(&mut self, texture: &Texture) -> GLTexture {
-		use image::GenericImageView;
+		use image::GenericImage;
 
 		let (width, height) = texture.image().dimensions();
 		let raw_pixels = &texture.image().raw_pixels()[..];
