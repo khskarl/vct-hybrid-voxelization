@@ -106,13 +106,7 @@ fn default_albedo() -> Texture {
 }
 
 fn default_metaghness() -> Texture {
-	let img = ImageBuffer::from_fn(256, 256, |x, y| {
-		if x % 2 == 0 {
-			image::Rgb([0u8, 0u8, 0u8])
-		} else {
-			image::Rgb([255u8, 255u8, 255u8])
-		}
-	});
+	let img = ImageBuffer::from_fn(256, 256, |_, _| image::Rgb([0u8, 250u8, 0u8]));
 
 	Texture::new(
 		"default_metaghness".to_owned(),
@@ -121,13 +115,13 @@ fn default_metaghness() -> Texture {
 }
 
 fn default_normal() -> Texture {
-	let img = ImageBuffer::from_fn(1, 1, |x, y| image::Rgb([0, 0, 255u8]));
+	let img = ImageBuffer::from_fn(1, 1, |_, _| image::Rgb([0, 0, 255u8]));
 
 	Texture::new("default_normal".to_owned(), DynamicImage::ImageRgb8(img))
 }
 
 fn default_occlusion() -> Texture {
-	let img = ImageBuffer::from_fn(1, 1, |x, y| image::Luma([255u8]));
+	let img = ImageBuffer::from_fn(1, 1, |_, _| image::Luma([255u8]));
 
 	Texture::new(
 		"default_occlusion".to_owned(),

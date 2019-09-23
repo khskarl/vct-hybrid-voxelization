@@ -437,7 +437,7 @@ dependencies = [
 [[package]]
 name = "gl_helpers"
 version = "0.1.8"
-source = "git+https://gitlab.com/khskarl/rs-gl_helpers.git#64e3a9ba0f51361f634999f4a45eb27ed1c51865"
+source = "git+https://gitlab.com/khskarl/rs-gl_helpers.git#ca6f5b16c9e72a9bc38b00bf50062076fa68efda"
 dependencies = [
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -3,6 +3,7 @@ use crate::gpu_model::{GpuMaterial, GpuPrimitive};
 use crate::scene::camera::*;
 use crate::scene::material::{Material, Texture};
 use crate::scene::model::Mesh;
+use gl;
 use gl_helpers::*;
 
 use std::collections::HashMap;
@@ -41,8 +42,6 @@ impl Renderer {
 			fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
 		let program = GLProgram::new(&vs_src[..], &fs_src[..]);
 
-		program.get_uniform("time").set_1f(1.0_f32);
-
 		Renderer {
 			primitives: Vec::new(),
 			materials: HashMap::new(),
@@ -69,6 +68,26 @@ impl Renderer {
 
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
+		self.pbr_program.get_uniform("time").set_1f(1.0_f32);
+
+		for i in 0..2 {
+			self
+				.pbr_program
+				.get_uniform("light_direction")
+				.set_3f(i, &[0.05, 0.7, 0.3]);
+
+			self
+				.pbr_program
+				.get_uniform("light_color")
+				.set_3f(i, &[2.0, 2.0, 2.0]);
+		}
+
+		self.pbr_program.get_uniform("num_lights").set_1i(4);
+
+		self
+			.pbr_program
+			.get_uniform("camera_position")
+			.set_3f(0, &camera.position.into());
 
 		for primitive in &self.primitives {
 			primitive.bind();
@@ -76,19 +95,19 @@ impl Renderer {
 			let material = &primitive.material();
 			self
 				.pbr_program
-				.get_uniform("albedo")
+				.get_uniform("albedo_map")
 				.set_sampler_2d(&material.albedo(), 0);
 			self
 				.pbr_program
-				.get_uniform("metaghness")
+				.get_uniform("metaghness_map")
 				.set_sampler_2d(&material.metaghness(), 1);
 			self
 				.pbr_program
-				.get_uniform("normal")
+				.get_uniform("normal_map")
 				.set_sampler_2d(&material.normal(), 2);
 			self
 				.pbr_program
-				.get_uniform("occlusion")
+				.get_uniform("occlusion_map")
 				.set_sampler_2d(&material.occlusion(), 3);
 
 			gl_draw_elements(

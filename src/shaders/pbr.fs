@@ -1,34 +1,47 @@
 #version 450
+#define MAX_LIGHTS 4
+
 const float M_PI = 3.1415926535897932384626433832795;
 
-vec3 light_dir[3] = vec3[](
-	vec3(0.1, 1.0, 0.3),
-	vec3(0.2, 1.0, -0.4),
-	vec3(-0.4, 1.0, 0.1)
-);
+uniform vec3 light_direction[MAX_LIGHTS];
+uniform vec3 light_position[MAX_LIGHTS];
+uniform vec3 light_color[MAX_LIGHTS];
+uniform float light_range[MAX_LIGHTS];
 
-vec3 light_color[3] = vec3[](
-	vec3(0.5, 0.6, 0.7),
-	vec3(0.1, 0.2, 0.4),
-	vec3(0.1, 0.3, 0.3)
-);
+uniform int num_lights;
 
-uniform mat4 proj;
-uniform mat4 view;
 uniform float time;
+uniform vec3 camera_position;
 
-uniform sampler2D albedo;
-uniform sampler2D metaghness;
-uniform sampler2D normal;
-uniform sampler2D occlusion;
+uniform sampler2D albedo_map;
+uniform sampler2D metaghness_map;
+uniform sampler2D normal_map;
+uniform sampler2D occlusion_map;
 
+in vec3 vw_position;
 in vec2 v_uv;
 in vec3 v_normal;
 
 out vec4 out_color;
 
+vec3 get_normal_from_map(vec3 f_normal) {
+	vec3 tangentNormal = f_normal * 2.0 - 1.0;
+
+	vec3 Q1  = dFdx(vw_position);
+	vec3 Q2  = dFdy(vw_position);
+	vec2 st1 = dFdx(v_uv);
+	vec2 st2 = dFdy(v_uv);
+
+	vec3 N   = normalize(v_normal);
+	vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+	vec3 B  = -normalize(cross(N, T));
+	mat3 TBN = mat3(T, B, N);
+
+	return normalize(TBN * tangentNormal);
+}
+
 float distribution_ggx(vec3 N, vec3 H, float a) {
-	float a2 = pow(a, 2.0);
+	float a2     = pow(a, 2.0);
 	float NdotH2 = pow(max(dot(N, H), 0.0), 2.0);
 
 	float denom = pow(NdotH2 * (a2 - 1) + 1, 2.0) * M_PI;
@@ -36,20 +49,69 @@ float distribution_ggx(vec3 N, vec3 H, float a) {
 	return a2 / denom;
 }
 
+float GeometrySchlickGGX(float NdotV, float k)
+{
+	float nom   = NdotV;
+	float denom = NdotV * (1.0 - k) + k;
+
+	return nom / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float k)
+{
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float ggx1 = GeometrySchlickGGX(NdotV, k);
+	float ggx2 = GeometrySchlickGGX(NdotL, k);
+
+	return ggx1 * ggx2;
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 void main() {
+
 	vec2 uv = vec2(v_uv.x + sin(time) * 0.001, v_uv.y);
 
-	vec3 diffuse = texture2D(albedo, uv).xyz;
-	float roughness = texture2D(metaghness, uv).g;
-	vec3 my_normal = texture2D(normal, uv).rgb;
-	float my_occlusion = texture2D(occlusion, uv).r;
+	vec3 albedo = texture2D(albedo_map, uv).xyz;
+	float roughness = texture2D(metaghness_map, uv).g;
+	float metalness = texture2D(metaghness_map, uv).b;
+	vec3 normal = get_normal_from_map(texture2D(normal_map, uv).rgb);
+	float occlusion = texture2D(occlusion_map, uv).r;
+
+	vec3 V = normalize(camera_position - vw_position);
+
+	vec3 F0 = vec3(0.04);
+	F0 = mix(F0, albedo, metalness);
 
 	vec3 direct = vec3(0.0);
-	for(int i = 0; i < 3; i++) {
-		direct += diffuse * light_color[i] * dot(normalize(light_dir[i]), v_normal);
+	for(int i = 0; i < num_lights; i++) {
+		vec3 L = normalize(light_direction[i]);
+		vec3 H = normalize(V + L);
+
+		vec3 N = normal;
+		float NDF = distribution_ggx(N, H, roughness);
+		float G   = GeometrySmith(N, V, L, roughness);
+		vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+		vec3 radiance = light_color[i];
+
+		float NdotL = max(dot(N, L), 0.0);
+
+		vec3  nom   = NDF * G * F;
+		float denom = 4 * max(dot(N, V), 0.0) * NdotL + 0.001;
+		vec3 specular = nom / denom;
+
+		vec3 kS = F;
+		vec3 kD = vec3(1.0) - kS;
+		kD *= 1.0 - metalness;
+
+		direct += (kD * albedo / M_PI + specular) * radiance * NdotL;
 	}
 
-	vec3 ambient = diffuse * vec3(0.1, roughness * 0.1, my_occlusion * 0.1) * my_occlusion + my_normal * 0.01;
+	vec3 ambient = albedo * vec3(0.2, 0.2, 0.2) * occlusion;
 
 	vec3 color = direct + ambient;
 	out_color = vec4(color, 1.0);

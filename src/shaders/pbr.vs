@@ -7,10 +7,12 @@ layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec2 aTexCoord;
 layout (location = 2) in vec3 aNormal;
 
+out vec3 vw_position;
 out vec2 v_uv;
 out vec3 v_normal;
 
 void main() {
+	vw_position = aPosition;
 	gl_Position = (proj * view) * vec4(aPosition, 1.0);
 	v_uv = aTexCoord;
 	v_normal = aNormal;

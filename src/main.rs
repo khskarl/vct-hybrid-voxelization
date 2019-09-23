@@ -43,7 +43,7 @@ impl KeyStates {
 
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
-	let logical_size = glutin::dpi::LogicalSize::new(800.0, 600.0);
+	let logical_size = glutin::dpi::LogicalSize::new(1280.0, 720.0);
 
 	let event_loop = glutin::event_loop::EventLoop::new();
 
@@ -65,11 +65,11 @@ fn main() {
 		window_gl.resize(logical_size.to_physical(dpi_factor));
 	}
 
-	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 5.0), -90.0, 0.0);
+	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	let mut resources = Resources::new();
-	let cube = Mesh::new("assets/models/cube.glb", &mut resources);
+	let sphere = Mesh::new("assets/models/sphere.glb", &mut resources);
 	let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
-	renderer.submit_mesh(&cube);
+	renderer.submit_mesh(&sphere);
 	renderer.submit_mesh(&sponza);
 
 	let mut key_states = KeyStates::new();
