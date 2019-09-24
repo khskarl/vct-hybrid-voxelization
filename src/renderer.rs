@@ -81,20 +81,20 @@ impl Renderer {
 			direction: glm::vec3(0.05, -0.7, -0.3),
 			position: glm::vec3(0.0, 0.0, 0.0),
 			color: glm::vec3(1.0, 1.0, 1.0),
-			intensity: 10.0,
+			intensity: 2.0,
 		});
 		lights.push(Light {
-			direction: glm::vec3(1.0, 0.0, 0.0),
-			position: glm::vec3(1.0, 0.0, 0.0),
-			color: glm::vec3(1.0, 0.0, 0.0),
-			intensity: 10.0,
+			direction: glm::vec3(0.0, 0.0, 0.0),
+			position: glm::vec3(9.0, 2.0, 0.0),
+			color: glm::vec3(0.7, 0.1, 0.2),
+			intensity: 1.0,
 		});
-		// lights.push(Light {
-		// 	direction: glm::vec3(0.0, 0.0, 1.0),
-		// 	position: glm::vec3(0.0, 0.0, 1.0),
-		// 	color: glm::vec3(0.0, 0.0, 1.0),
-		// 	intensity: 10.0,
-		// });
+		lights.push(Light {
+			direction: glm::vec3(0.0, 0.0, 0.0),
+			position: glm::vec3(-9.0, 2.0, 0.0),
+			color: glm::vec3(0.15, 0.25, 0.6),
+			intensity: 1.0,
+		});
 
 		Renderer {
 			primitives: Vec::new(),
@@ -126,24 +126,31 @@ impl Renderer {
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
 		self.pbr_program.get_uniform("time").set_1f(0.1_f32);
 
-		let directions: Vec<f32> = self.lights.iter()
-			.map(|l| { l.direction.into_iter() })
+		let directions: Vec<f32> = self
+			.lights
+			.iter()
+			.map(|l| l.direction.into_iter())
 			.flatten()
 			.cloned()
 			.collect();
 
-		let positions: Vec<f32> = self.lights.iter()
-			.map(|l| { l.position.into_iter() })
+		let positions: Vec<f32> = self
+			.lights
+			.iter()
+			.map(|l| l.position.into_iter())
 			.flatten()
 			.cloned()
 			.collect();
 
-		let colors_unflattened: Vec<glm::Vec3> = self.lights.iter()
-			.map(|l| { (l.color * l.intensity) })
+		let colors_unflattened: Vec<glm::Vec3> = self
+			.lights
+			.iter()
+			.map(|l| (l.color * l.intensity))
 			.collect();
 
-		let colors: Vec<f32> = colors_unflattened.iter()
-			.map(|c| { c })
+		let colors: Vec<f32> = colors_unflattened
+			.iter()
+			.map(|c| c)
 			.flatten()
 			.cloned()
 			.collect();

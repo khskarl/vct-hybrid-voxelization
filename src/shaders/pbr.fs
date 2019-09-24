@@ -73,7 +73,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metalness, vec3 normal, float occlusion, vec3 V, vec3 F0) {
-	vec3 L = normalize(Li);
+	vec3 L = -normalize(Li);
 	vec3 H = normalize(V + L);
 
 	vec3 N = normal;
@@ -113,7 +113,7 @@ void main() {
 	vec3 direct = vec3(0.0);
 	for(int i = 0; i < min(1, num_lights); i++) {
 		direct += direct_lighting(
-			-light_direction[i],
+			light_direction[i],
 			light_color[i],
 			albedo,
 			roughness,
@@ -125,8 +125,12 @@ void main() {
 		);
 	}
 	for(int i = 1; i < num_lights; i++) {
-		direct += direct_lighting(
-			light_position[i] - vw_position,
+		vec3 Li = vw_position - light_position[i];
+		float dist = length(Li);
+		float attenuation = 0.1 * dist * dist;
+
+		vec3 radiance = direct_lighting(
+			Li,
 			light_color[i],
 			albedo,
 			roughness,
@@ -136,6 +140,8 @@ void main() {
 			V,
 			F0
 		);
+
+		direct += radiance / attenuation;
 	}
 	vec3 ambient = albedo * vec3(0.2, 0.2, 0.2) * occlusion;
 	// float NdotL = max(dot(v_normal, -light_direction[0]), 0.0);
