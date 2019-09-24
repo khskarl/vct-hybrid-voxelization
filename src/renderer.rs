@@ -6,15 +6,26 @@ use crate::scene::model::Mesh;
 use gl;
 use gl_helpers::*;
 
+use nalgebra_glm as glm;
+
 use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
+
+struct Light {
+	direction: glm::Vec3,
+	position: glm::Vec3,
+	color: glm::Vec3,
+	intensity: f32,
+}
 
 pub struct Renderer {
 	primitives: Vec<GpuPrimitive>,
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
 	pbr_program: GLProgram,
+	lights: Vec<Light>,
+	voxelized_scene: GLTexture,
 }
 
 impl Renderer {
@@ -42,11 +53,50 @@ impl Renderer {
 			fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
 		let program = GLProgram::new(&vs_src[..], &fs_src[..]);
 
+		let pixels: Vec<u8> = (0..1000)
+			.map(|i| {
+				if 400 < i && i < 500 && i % 2 == 0 {
+					255
+				} else {
+					0
+				}
+			})
+			.collect();
+
+		let voxelized_scene = GLTexture::new_3d(
+			10,
+			10,
+			10,
+			InternalFormat::R8,
+			DataFormat::Red,
+			DataKind::UnsignedByte,
+			FilterMode::None,
+			Wrap::Clamp,
+			true,
+			&pixels[..],
+		);
+
+		let mut lights = Vec::new();
+		lights.push(Light {
+			direction: glm::vec3(0.05, -0.7, -0.3),
+			position: glm::vec3(0.0, 0.0, 0.0),
+			color: glm::vec3(1.0, 1.0, 1.0),
+			intensity: 10.0,
+		});
+		lights.push(Light {
+			direction: glm::vec3(0.0, 0.0, 0.0),
+			position: glm::vec3(0.0, 1.0, 0.0),
+			color: glm::vec3(1.0, 1.0, 1.0),
+			intensity: 10.0,
+		});
+
 		Renderer {
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
 			pbr_program: program,
+			lights,
+			voxelized_scene,
 		}
 	}
 
@@ -70,19 +120,29 @@ impl Renderer {
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
 		self.pbr_program.get_uniform("time").set_1f(1.0_f32);
 
-		for i in 0..2 {
+		for (i, light) in self.lights.iter().enumerate() {
+			let light_dir: [f32; 3] = light.direction.into();
 			self
 				.pbr_program
 				.get_uniform("light_direction")
-				.set_3f(i, &[0.05, 0.7, 0.3]);
+				.set_3f(i, &light_dir);
+			println!("Lightdir: {:?}", light_dir);
+
+			self
+				.pbr_program
+				.get_uniform("light_position")
+				.set_3f(i, &light.position.into());
 
 			self
 				.pbr_program
 				.get_uniform("light_color")
-				.set_3f(i, &[2.0, 2.0, 2.0]);
+				.set_3f(i, &(light.color * light.intensity).into());
 		}
 
-		self.pbr_program.get_uniform("num_lights").set_1i(4);
+		self
+			.pbr_program
+			.get_uniform("num_lights")
+			.set_1i(self.lights.len() as i32);
 
 		self
 			.pbr_program

@@ -66,11 +66,13 @@ fn main() {
 	}
 
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
-	let mut resources = Resources::new();
-	let sphere = Mesh::new("assets/models/sphere.glb", &mut resources);
-	let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
-	renderer.submit_mesh(&sphere);
-	renderer.submit_mesh(&sponza);
+	{
+		let mut resources = Resources::new();
+		let sphere = Mesh::new("assets/models/sphere.glb", &mut resources);
+		let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
+		renderer.submit_mesh(&sphere);
+		renderer.submit_mesh(&sponza);
+	}
 
 	let mut key_states = KeyStates::new();
 

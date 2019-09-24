@@ -72,6 +72,29 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metalness, vec3 normal, float occlusion, vec3 V, vec3 F0) {
+	vec3 L = normalize(Li);
+	vec3 H = normalize(V + L);
+
+	vec3 N = normal;
+	float NDF = distribution_ggx(N, H, roughness);
+	float G   = GeometrySmith(N, V, L, roughness);
+	vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
+	vec3 radiance = Lc;
+
+	float NdotL = max(dot(N, L), 0.0);
+
+	vec3  nom   = NDF * G * F;
+	float denom = 4 * max(dot(N, V), 0.0) * NdotL + 0.001;
+	vec3 specular = nom / denom;
+
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metalness;
+
+	return (kD * albedo / M_PI + specular) * radiance * NdotL;
+}
+
 void main() {
 
 	vec2 uv = vec2(v_uv.x + sin(time) * 0.001, v_uv.y);
@@ -88,31 +111,35 @@ void main() {
 	F0 = mix(F0, albedo, metalness);
 
 	vec3 direct = vec3(0.0);
-	for(int i = 0; i < num_lights; i++) {
-		vec3 L = normalize(light_direction[i]);
-		vec3 H = normalize(V + L);
-
-		vec3 N = normal;
-		float NDF = distribution_ggx(N, H, roughness);
-		float G   = GeometrySmith(N, V, L, roughness);
-		vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
-		vec3 radiance = light_color[i];
-
-		float NdotL = max(dot(N, L), 0.0);
-
-		vec3  nom   = NDF * G * F;
-		float denom = 4 * max(dot(N, V), 0.0) * NdotL + 0.001;
-		vec3 specular = nom / denom;
-
-		vec3 kS = F;
-		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - metalness;
-
-		direct += (kD * albedo / M_PI + specular) * radiance * NdotL;
+	for(int i = 0; i < min(1, num_lights); i++) {
+		direct += direct_lighting(
+			-light_direction[i],
+			light_color[i],
+			albedo,
+			roughness,
+			metalness,
+			normal,
+			occlusion,
+			V,
+			F0
+		);
+	}
+	for(int i = 1; i < num_lights; i++) {
+		direct += direct_lighting(
+			light_position[i] - vw_position,
+			light_color[i],
+			albedo,
+			roughness,
+			metalness,
+			normal,
+			occlusion,
+			V,
+			F0
+		);
 	}
 
 	vec3 ambient = albedo * vec3(0.2, 0.2, 0.2) * occlusion;
 
-	vec3 color = direct + ambient;
+	vec3 color = direct + ambient + vec3(-light_direction[0]);
 	out_color = vec4(color, 1.0);
 }
