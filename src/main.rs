@@ -69,14 +69,15 @@ fn main() {
 	{
 		let mut resources = Resources::new();
 		let sphere = Mesh::new("assets/models/sphere.glb", &mut resources);
-		let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
+		// let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
 		renderer.submit_mesh(&sphere);
-		renderer.submit_mesh(&sponza);
+		// renderer.submit_mesh(&sponza);
 	}
 
 	let mut key_states = KeyStates::new();
 
 	let target_dt = 0.01666666666;
+	let mut dt = target_dt;
 	let mut start_frame_time = Instant::now();
 
 	event_loop.run(move |event, _, control_flow| {
@@ -127,7 +128,6 @@ fn main() {
 				_ => (),
 			},
 			Event::EventsCleared => {
-				let dt = target_dt;
 				let move_rate = 5.0; // m/s
 				let rotation_rate = 60.0; // Degrees/s
 
@@ -158,7 +158,7 @@ fn main() {
 					camera.rotate_up(rotation_rate * dt)
 				}
 
-				let dt = Instant::now()
+				dt = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();
 
