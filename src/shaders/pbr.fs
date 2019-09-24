@@ -1,4 +1,4 @@
-#version 450
+#version 330
 #define MAX_LIGHTS 4
 
 const float M_PI = 3.1415926535897932384626433832795;
@@ -99,11 +99,11 @@ void main() {
 
 	vec2 uv = vec2(v_uv.x + sin(time) * 0.001, v_uv.y);
 
-	vec3 albedo = texture2D(albedo_map, uv).xyz;
-	float roughness = texture2D(metaghness_map, uv).g;
-	float metalness = texture2D(metaghness_map, uv).b;
-	vec3 normal = get_normal_from_map(texture2D(normal_map, uv).rgb);
-	float occlusion = texture2D(occlusion_map, uv).r;
+	vec3 albedo = texture(albedo_map, uv).xyz;
+	float roughness = texture(metaghness_map, uv).g;
+	float metalness = texture(metaghness_map, uv).b;
+	vec3 normal = get_normal_from_map(texture(normal_map, uv).rgb);
+	float occlusion = texture(occlusion_map, uv).r;
 
 	vec3 V = normalize(camera_position - vw_position);
 
@@ -137,9 +137,8 @@ void main() {
 			F0
 		);
 	}
-
 	vec3 ambient = albedo * vec3(0.2, 0.2, 0.2) * occlusion;
-
-	vec3 color = direct + ambient + vec3(-light_direction[0]);
+	// float NdotL = max(dot(v_normal, -light_direction[0]), 0.0);
+	vec3 color = direct + ambient;
 	out_color = vec4(color, 1.0);
 }

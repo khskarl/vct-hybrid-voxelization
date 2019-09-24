@@ -437,7 +437,6 @@ dependencies = [
 [[package]]
 name = "gl_helpers"
 version = "0.1.8"
-source = "git+https://gitlab.com/khskarl/rs-gl_helpers.git#8103cd03aa519177705e5c85692c7b8ae2b32168"
 dependencies = [
  "fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -721,7 +720,7 @@ dependencies = [
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "genmesh 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_helpers 0.1.8 (git+https://gitlab.com/khskarl/rs-gl_helpers.git)",
+ "gl_helpers 0.1.8",
  "gltf 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.22.0-alpha3 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1710,7 +1709,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gl 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4b411c7e0bfc599e3606412c190e786b5bb48cf00073e1635f9bb6f88fe7d84a"
 "checksum gl_generator 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "39a23d5e872a275135d66895d954269cf5e8661d234eb1c2480f4ce0d586acbd"
 "checksum gl_generator 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ca98bbde17256e02d17336a6bdb5a50f7d0ccacee502e191d3e3d0ec2f96f84a"
-"checksum gl_helpers 0.1.8 (git+https://gitlab.com/khskarl/rs-gl_helpers.git)" = "<none>"
 "checksum gleam 0.6.19 (registry+https://github.com/rust-lang/crates.io-index)" = "cae10d7c99d0e77b4766e850a60898a17c1abaf01075531f1066f03dc7dc5fc5"
 "checksum gltf 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cabc55d962f91fef858f571348fd5dcd9dda2107960ede2c0609889a50d9edac"
 "checksum gltf-derive 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b397b4c62c6345e1674e1fcabb88fdfc5f5330cf73ee031511a50273c0b4d921"

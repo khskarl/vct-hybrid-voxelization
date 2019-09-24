@@ -84,11 +84,17 @@ impl Renderer {
 			intensity: 10.0,
 		});
 		lights.push(Light {
-			direction: glm::vec3(0.0, 0.0, 0.0),
-			position: glm::vec3(0.0, 1.0, 0.0),
-			color: glm::vec3(1.0, 1.0, 1.0),
+			direction: glm::vec3(1.0, 0.0, 0.0),
+			position: glm::vec3(1.0, 0.0, 0.0),
+			color: glm::vec3(1.0, 0.0, 0.0),
 			intensity: 10.0,
 		});
+		// lights.push(Light {
+		// 	direction: glm::vec3(0.0, 0.0, 1.0),
+		// 	position: glm::vec3(0.0, 0.0, 1.0),
+		// 	color: glm::vec3(0.0, 0.0, 1.0),
+		// 	intensity: 10.0,
+		// });
 
 		Renderer {
 			primitives: Vec::new(),
@@ -118,26 +124,44 @@ impl Renderer {
 
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
-		self.pbr_program.get_uniform("time").set_1f(1.0_f32);
+		self.pbr_program.get_uniform("time").set_1f(0.1_f32);
 
-		for (i, light) in self.lights.iter().enumerate() {
-			let light_dir: [f32; 3] = light.direction.into();
-			self
-				.pbr_program
-				.get_uniform("light_direction")
-				.set_3f(i, &light_dir);
-			println!("Lightdir: {:?}", light_dir);
+		let directions: Vec<f32> = self.lights.iter()
+			.map(|l| { l.direction.into_iter() })
+			.flatten()
+			.cloned()
+			.collect();
 
-			self
-				.pbr_program
-				.get_uniform("light_position")
-				.set_3f(i, &light.position.into());
+		let positions: Vec<f32> = self.lights.iter()
+			.map(|l| { l.position.into_iter() })
+			.flatten()
+			.cloned()
+			.collect();
 
-			self
-				.pbr_program
-				.get_uniform("light_color")
-				.set_3f(i, &(light.color * light.intensity).into());
-		}
+		let colors_unflattened: Vec<glm::Vec3> = self.lights.iter()
+			.map(|l| { (l.color * l.intensity) })
+			.collect();
+
+		let colors: Vec<f32> = colors_unflattened.iter()
+			.map(|c| { c })
+			.flatten()
+			.cloned()
+			.collect();
+
+		self
+			.pbr_program
+			.get_uniform("light_direction")
+			.set_3fv(&directions[..]);
+
+		self
+			.pbr_program
+			.get_uniform("light_position")
+			.set_3fv(&positions[..]);
+
+		self
+			.pbr_program
+			.get_uniform("light_color")
+			.set_3fv(&colors[..]);
 
 		self
 			.pbr_program
