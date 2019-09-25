@@ -20,11 +20,15 @@ struct Light {
 }
 
 pub struct Renderer {
+	dimensions: (usize, usize),
 	primitives: Vec<GpuPrimitive>,
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
 	pbr_program: GLProgram,
 	lights: Vec<Light>,
+	depth_map: GLTexture,
+	depth_map_framebuffer: GLFramebuffer,
+	depth_program: GLProgram,
 	voxelized_scene: GLTexture,
 }
 
@@ -47,11 +51,18 @@ impl Renderer {
 			logical_size.height as usize,
 		);
 
-		let vs_src =
-			fs::read_to_string("src/shaders/pbr.vs").expect("Couldn't read the vertex shader :(");
-		let fs_src =
-			fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
-		let program = GLProgram::new(&vs_src[..], &fs_src[..]);
+		let depth_map = GLTexture::new_null_2d(
+			2048,
+			2048,
+			InternalFormat::DepthComponent24,
+			DataFormat::DepthComponent,
+			DataKind::Float,
+			FilterMode::Linear,
+			Wrap::Repeat,
+			false,
+		);
+
+		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
 		let pixels: Vec<u8> = (0..1000)
 			.map(|i| {
@@ -78,35 +89,86 @@ impl Renderer {
 
 		let mut lights = Vec::new();
 		lights.push(Light {
-			direction: glm::vec3(0.05, -0.7, -0.3),
-			position: glm::vec3(0.0, 0.0, 0.0),
+			direction: glm::vec3(0.05, -0.9, -0.1),
+			position: glm::vec3(0.0, 2.0, 0.0),
 			color: glm::vec3(1.0, 1.0, 1.0),
-			intensity: 2.0,
+			intensity: 4.0,
 		});
 		lights.push(Light {
 			direction: glm::vec3(0.0, 0.0, 0.0),
 			position: glm::vec3(9.0, 2.0, 0.0),
-			color: glm::vec3(0.7, 0.1, 0.2),
+			color: glm::vec3(0.5, 0.2, 0.3),
 			intensity: 1.0,
 		});
 		lights.push(Light {
 			direction: glm::vec3(0.0, 0.0, 0.0),
 			position: glm::vec3(-9.0, 2.0, 0.0),
-			color: glm::vec3(0.15, 0.25, 0.6),
+			color: glm::vec3(0.2, 0.3, 0.5),
 			intensity: 1.0,
 		});
 
+		let pbr_program = {
+			let vs_src =
+				fs::read_to_string("src/shaders/pbr.vs").expect("Couldn't read the vertex shader :(");
+			let fs_src =
+				fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
+
+			GLProgram::new(&vs_src[..], &fs_src[..])
+		};
+
+		let depth_program = {
+			let vs_src = fs::read_to_string("src/shaders/depth_pass.vs")
+				.expect("Couldn't read the vertex shader :(");
+			let fs_src = fs::read_to_string("src/shaders/depth_pass.fs")
+				.expect("Couldn't read the fragment shader :(");
+
+			GLProgram::new(&vs_src[..], &fs_src[..])
+		};
+
 		Renderer {
+			dimensions: (logical_size.width as usize, logical_size.height as usize),
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
-			pbr_program: program,
+			pbr_program,
 			lights,
+			depth_map,
+			depth_map_framebuffer,
+			depth_program,
 			voxelized_scene,
 		}
 	}
 
+	fn render_to_shadow_map(&self) {
+		gl_set_cull_face(CullFace::Front);
+		gl_set_viewport(0, 0, self.depth_map.width(), self.depth_map.height());
+		self.depth_map_framebuffer.bind();
+		gl_clear(false, true, false);
+
+		self.depth_program.bind();
+		self
+			.depth_program
+			.get_uniform("light_matrix")
+			.set_mat4f(&light_matrix(&self.lights[0]));
+
+		for primitive in &self.primitives {
+			primitive.bind();
+
+			gl_draw_elements(
+				DrawMode::Triangles,
+				primitive.count_vertices(),
+				IndexKind::UnsignedInt,
+				0,
+			);
+		}
+
+		self.depth_map_framebuffer.unbind();
+	}
+
 	pub fn render(&self, camera: &Camera) {
+		self.render_to_shadow_map();
+		gl_set_cull_face(CullFace::Back);
+		gl_set_viewport(0, 0, self.dimensions.0, self.dimensions.1);
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
 		gl_clear(true, true, true);
 
@@ -125,6 +187,15 @@ impl Renderer {
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
 		self.pbr_program.get_uniform("time").set_1f(0.1_f32);
+
+		self
+			.pbr_program
+			.get_uniform("light_matrix")
+			.set_mat4f(&light_matrix(&self.lights[0]));
+		self
+			.pbr_program
+			.get_uniform("shadow_map")
+			.set_sampler_2d(&self.depth_map, 4);
 
 		let directions: Vec<f32> = self
 			.lights
@@ -282,4 +353,20 @@ impl Renderer {
 
 		gl_texture
 	}
+}
+
+fn light_matrix(light: &Light) -> [f32; 16] {
+	let light_view = glm::look_at_rh(
+		&light.position,
+		&(light.position + light.direction),
+		&glm::vec3(0.0, 1.0, 0.0),
+	);
+	let light_proj = glm::ortho_rh_zo(-20.0, 10.0, -20.0, 20.0, 1.0, 20.0);
+
+	let light_matrix: [f32; 16] = {
+		let transmute_me: [[f32; 4]; 4] = (light_proj * light_view).into();
+		unsafe { std::mem::transmute(transmute_me) }
+	};
+
+	light_matrix
 }

@@ -17,12 +17,27 @@ uniform sampler2D albedo_map;
 uniform sampler2D metaghness_map;
 uniform sampler2D normal_map;
 uniform sampler2D occlusion_map;
+uniform sampler2D shadow_map;
 
 in vec3 vw_position;
 in vec2 v_uv;
 in vec3 v_normal;
+in vec4 vl_position;
 
 out vec4 out_color;
+
+float calculate_shadow(vec4 l_pos) {
+	vec3 proj_coords = l_pos.xyz / l_pos.w;
+	proj_coords = proj_coords * 0.5 + 0.5;
+
+	float bias = 0.005;
+	float closest_depth = texture(shadow_map, proj_coords.xy).r;
+	float current_depth = proj_coords.z;
+	float shadow = current_depth - bias > closest_depth  ? 1.0 : 0.0;
+
+	return shadow;
+}
+
 
 vec3 get_normal_from_map(vec3 f_normal) {
 	vec3 tangentNormal = f_normal * 2.0 - 1.0;
@@ -143,8 +158,9 @@ void main() {
 
 		direct += radiance / attenuation;
 	}
-	vec3 ambient = albedo * vec3(0.2, 0.2, 0.2) * occlusion;
+	vec3 ambient = albedo * vec3(0.1, 0.1, 0.1) * occlusion;
 	// float NdotL = max(dot(v_normal, -light_direction[0]), 0.0);
-	vec3 color = direct + ambient;
+	float shadow = calculate_shadow(vl_position);
+	vec3 color = direct * (1.0 - shadow) + ambient;
 	out_color = vec4(color, 1.0);
 }
