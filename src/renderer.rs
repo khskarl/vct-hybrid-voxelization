@@ -58,7 +58,7 @@ impl Renderer {
 			DataFormat::DepthComponent,
 			DataKind::Float,
 			FilterMode::Linear,
-			Wrap::Repeat,
+			Wrap::Clamp,
 			false,
 		);
 

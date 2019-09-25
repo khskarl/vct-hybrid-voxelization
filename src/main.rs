@@ -68,10 +68,8 @@ fn main() {
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	{
 		let mut resources = Resources::new();
-		let sphere = Mesh::new("assets/models/sphere.glb", &mut resources);
-		renderer.submit_mesh(&sphere);
-		let sponza = Mesh::new("assets/models/sponza.glb", &mut resources);
-		renderer.submit_mesh(&sponza);
+		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
+		renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}
 
 	let mut key_states = KeyStates::new();
