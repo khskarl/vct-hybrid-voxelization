@@ -94,7 +94,7 @@ impl Material {
 }
 
 fn default_albedo() -> Texture {
-	let img = ImageBuffer::from_fn(1, 1, |x, y| {
+	let img = ImageBuffer::from_fn(1, 1, |x, _| {
 		if x % 2 == 0 {
 			image::Rgb([0u8, 0u8, 0u8])
 		} else {
