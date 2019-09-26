@@ -13,36 +13,6 @@ use scene::model::{Mesh, Resources};
 
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
-#[derive(Debug)]
-#[allow(non_snake_case)]
-struct KeyStates {
-	A: glutin::event::ElementState,
-	D: glutin::event::ElementState,
-	S: glutin::event::ElementState,
-	W: glutin::event::ElementState,
-
-	J: glutin::event::ElementState,
-	L: glutin::event::ElementState,
-	K: glutin::event::ElementState,
-	I: glutin::event::ElementState,
-}
-
-impl KeyStates {
-	pub fn new() -> KeyStates {
-		KeyStates {
-			A: glutin::event::ElementState::Released,
-			D: glutin::event::ElementState::Released,
-			S: glutin::event::ElementState::Released,
-			W: glutin::event::ElementState::Released,
-
-			J: glutin::event::ElementState::Released,
-			L: glutin::event::ElementState::Released,
-			K: glutin::event::ElementState::Released,
-			I: glutin::event::ElementState::Released,
-		}
-	}
-}
-
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
 	let logical_size = glutin::dpi::LogicalSize::new(1280.0, 720.0);
@@ -128,8 +98,6 @@ fn main() {
 						(K, _) => key_states.K = state,
 						(I, _) => key_states.I = state,
 
-						// Z => aux.time -= 0.05 * dt,
-						// X => aux.time += 0.05 * dt,
 						_ => (),
 					}
 				}
@@ -147,46 +115,16 @@ fn main() {
 				_ => (),
 			},
 			Event::EventsCleared => {
-				let move_rate = 5.0; // m/s
-				let rotation_rate = 60.0; // Degrees/s
-
-				use glutin::event::ElementState::Pressed;
-				if key_states.A == Pressed {
-					camera.move_right(-move_rate * dt)
-				}
-				if key_states.D == Pressed {
-					camera.move_right(move_rate * dt)
-				}
-				if key_states.S == Pressed {
-					camera.move_forward(-move_rate * dt)
-				}
-				if key_states.W == Pressed {
-					camera.move_forward(move_rate * dt)
-				}
-
-				if key_states.J == Pressed {
-					camera.rotate_right(-rotation_rate * dt)
-				}
-				if key_states.L == Pressed {
-					camera.rotate_right(rotation_rate * dt)
-				}
-				if key_states.K == Pressed {
-					camera.rotate_up(-rotation_rate * dt)
-				}
-				if key_states.I == Pressed {
-					camera.rotate_up(rotation_rate * dt)
-				}
+				update_camera(&mut camera, dt, &key_states);
 
 				dt = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();
+				imgui.io_mut().delta_time = dt;
 
 				window_gl
 					.window()
 					.set_title(&format!("{} | {:.6}", WINDOW_TITLE, dt));
-
-				imgui.io_mut().delta_time = dt;
-				// imgui.io_mut().update_delta_time(start_frame_time);
 
 				window_gl.window().request_redraw();
 				start_frame_time = Instant::now();
@@ -198,4 +136,66 @@ fn main() {
 			_ => *control_flow = ControlFlow::Poll,
 		}
 	});
+}
+
+#[derive(Debug)]
+#[allow(non_snake_case)]
+struct KeyStates {
+	A: glutin::event::ElementState,
+	D: glutin::event::ElementState,
+	S: glutin::event::ElementState,
+	W: glutin::event::ElementState,
+
+	J: glutin::event::ElementState,
+	L: glutin::event::ElementState,
+	K: glutin::event::ElementState,
+	I: glutin::event::ElementState,
+}
+
+impl KeyStates {
+	pub fn new() -> KeyStates {
+		KeyStates {
+			A: glutin::event::ElementState::Released,
+			D: glutin::event::ElementState::Released,
+			S: glutin::event::ElementState::Released,
+			W: glutin::event::ElementState::Released,
+
+			J: glutin::event::ElementState::Released,
+			L: glutin::event::ElementState::Released,
+			K: glutin::event::ElementState::Released,
+			I: glutin::event::ElementState::Released,
+		}
+	}
+}
+
+fn update_camera(camera: &mut Camera, dt: f32, key_states: &KeyStates) {
+	let move_rate = 5.0; // m/s
+	let rotation_rate = 60.0; // Degrees/s
+
+	use glutin::event::ElementState::Pressed;
+	if key_states.A == Pressed {
+		camera.move_right(-move_rate * dt)
+	}
+	if key_states.D == Pressed {
+		camera.move_right(move_rate * dt)
+	}
+	if key_states.S == Pressed {
+		camera.move_forward(-move_rate * dt)
+	}
+	if key_states.W == Pressed {
+		camera.move_forward(move_rate * dt)
+	}
+
+	if key_states.J == Pressed {
+		camera.rotate_right(-rotation_rate * dt)
+	}
+	if key_states.L == Pressed {
+		camera.rotate_right(rotation_rate * dt)
+	}
+	if key_states.K == Pressed {
+		camera.rotate_up(-rotation_rate * dt)
+	}
+	if key_states.I == Pressed {
+		camera.rotate_up(rotation_rate * dt)
+	}
 }
