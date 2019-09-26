@@ -52,7 +52,7 @@ fn main() {
 		let mut resources = Resources::new();
 		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
 		// renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
-		renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
+		// renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}
 
 	let mut key_states = KeyStates::new();
