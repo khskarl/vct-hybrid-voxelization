@@ -21,6 +21,11 @@ imgui = "0.2"
 imgui-gfx-renderer = "0.2"
 imgui-opengl-renderer = "0.6.0"
 
+[dependencies.imgui-winit-support]
+version = "0.2.1"
+default-features = false
+features = ["winit-20"]
+
 [dependencies.img_hash]
 version = "2.0"
 features = ["rust-image"]

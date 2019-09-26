@@ -97,13 +97,13 @@ impl Renderer {
 		lights.push(Light {
 			direction: glm::vec3(0.0, 0.0, 0.0),
 			position: glm::vec3(9.0, 2.0, 0.0),
-			color: glm::vec3(0.5, 0.2, 0.3),
+			color: glm::vec3(0.058, 0.513, 0.415),
 			intensity: 1.0,
 		});
 		lights.push(Light {
 			direction: glm::vec3(0.0, 0.0, 0.0),
 			position: glm::vec3(-9.0, 2.0, 0.0),
-			color: glm::vec3(0.2, 0.3, 0.5),
+			color: glm::vec3(0.823, 0.117, 0.568),
 			intensity: 1.0,
 		});
 

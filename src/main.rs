@@ -11,6 +11,8 @@ mod scene;
 use scene::camera::*;
 use scene::model::{Mesh, Resources};
 
+use imgui_winit_support::{HiDpiMode, WinitPlatform};
+
 #[derive(Debug)]
 #[allow(non_snake_case)]
 struct KeyStates {
@@ -59,6 +61,9 @@ fn main() {
 	};
 
 	let mut imgui = imgui::Context::create();
+	let mut platform = WinitPlatform::init(&mut imgui);
+	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
+
 	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
 	{
@@ -76,6 +81,7 @@ fn main() {
 	{
 		let mut resources = Resources::new();
 		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
+		// renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
 		renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}
 
@@ -87,6 +93,7 @@ fn main() {
 
 	event_loop.run(move |event, _, control_flow| {
 		*control_flow = ControlFlow::Wait;
+		platform.handle_event(imgui.io_mut(), &window_gl.window(), &event);
 
 		use glutin::event::*;
 		use glutin::event_loop::*;
@@ -127,11 +134,13 @@ fn main() {
 					}
 				}
 				WindowEvent::RedrawRequested => {
-					renderer.render(&camera);
+					imgui.io_mut().update_delta_time(start_frame_time);
 
 					let ui = imgui.frame();
-					ui.show_demo_window(&mut true);
 
+					renderer.render(&camera);
+
+					ui.show_demo_window(&mut true);
 					imgui_renderer.render(ui);
 					window_gl.swap_buffers().unwrap();
 				}
@@ -177,11 +186,10 @@ fn main() {
 					.set_title(&format!("{} | {:.6}", WINDOW_TITLE, dt));
 
 				imgui.io_mut().delta_time = dt;
+				// imgui.io_mut().update_delta_time(start_frame_time);
 
 				window_gl.window().request_redraw();
-
 				start_frame_time = Instant::now();
-
 				*control_flow = ControlFlow::Poll;
 			}
 			Event::DeviceEvent { event, .. } => match event {
