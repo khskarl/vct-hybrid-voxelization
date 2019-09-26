@@ -132,9 +132,11 @@ void main() {
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metalness);
 
+	float shadow = calculate_shadow(vl_position);
+
 	vec3 direct = vec3(0.0);
 	for(int i = 0; i < min(1, num_lights); i++) {
-		direct += direct_lighting(
+		vec3 radiance = direct_lighting(
 			light_direction[i],
 			light_color[i],
 			albedo,
@@ -145,6 +147,8 @@ void main() {
 			V,
 			F0
 		);
+
+		direct += radiance * (1.0 - shadow);
 	}
 	for(int i = 1; i < num_lights; i++) {
 		vec3 Li = vw_position - light_position[i];
@@ -167,7 +171,6 @@ void main() {
 	}
 	vec3 ambient = albedo * vec3(0.2, 0.15, 0.1) * occlusion;
 	// float NdotL = max(dot(v_normal, -light_direction[0]), 0.0);
-	float shadow = calculate_shadow(vl_position);
-	vec3 color = direct * (1.0 - shadow) + ambient;
+	vec3 color = direct + ambient;
 	out_color = vec4(color, 1.0);
 }

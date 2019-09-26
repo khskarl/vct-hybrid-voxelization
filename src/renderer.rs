@@ -89,7 +89,7 @@ impl Renderer {
 
 		let mut lights = Vec::new();
 		lights.push(Light {
-			direction: glm::vec3(0.05, -0.9, -0.1),
+			direction: glm::vec3(0.05, -0.9, -0.2),
 			position: glm::vec3(0.0, 2.0, 0.0),
 			color: glm::vec3(1.0, 1.0, 1.0),
 			intensity: 4.0,
@@ -109,17 +109,17 @@ impl Renderer {
 
 		let pbr_program = {
 			let vs_src =
-				fs::read_to_string("src/shaders/pbr.vs").expect("Couldn't read the vertex shader :(");
+				fs::read_to_string("src/shaders/pbr.vert").expect("Couldn't read the vertex shader :(");
 			let fs_src =
-				fs::read_to_string("src/shaders/pbr.fs").expect("Couldn't read the fragment shader :(");
+				fs::read_to_string("src/shaders/pbr.frag").expect("Couldn't read the fragment shader :(");
 
 			GLProgram::new(&vs_src[..], &fs_src[..])
 		};
 
 		let depth_program = {
-			let vs_src = fs::read_to_string("src/shaders/depth_pass.vs")
+			let vs_src = fs::read_to_string("src/shaders/depth_pass.vert")
 				.expect("Couldn't read the vertex shader :(");
-			let fs_src = fs::read_to_string("src/shaders/depth_pass.fs")
+			let fs_src = fs::read_to_string("src/shaders/depth_pass.frag")
 				.expect("Couldn't read the fragment shader :(");
 
 			GLProgram::new(&vs_src[..], &fs_src[..])
