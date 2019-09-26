@@ -58,12 +58,19 @@ fn main() {
 		unsafe { window_gl.make_current() }.unwrap()
 	};
 
+	let mut imgui = imgui::Context::create();
+	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
 	{
 		let logical_size = window_gl.window().inner_size();
 		let dpi_factor = window_gl.window().hidpi_factor();
+		let physical_size = logical_size.to_physical(dpi_factor);
+
+		imgui.io_mut().display_size = [physical_size.width as f32, physical_size.height as f32];
 		window_gl.resize(logical_size.to_physical(dpi_factor));
 	}
+	let imgui_renderer =
+		imgui_opengl_renderer::Renderer::new(&mut imgui, |s| window_gl.get_proc_address(s) as _);
 
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	{
@@ -121,6 +128,11 @@ fn main() {
 				}
 				WindowEvent::RedrawRequested => {
 					renderer.render(&camera);
+
+					let ui = imgui.frame();
+					ui.show_demo_window(&mut true);
+
+					imgui_renderer.render(ui);
 					window_gl.swap_buffers().unwrap();
 				}
 				_ => (),
@@ -163,6 +175,8 @@ fn main() {
 				window_gl
 					.window()
 					.set_title(&format!("{} | {:.6}", WINDOW_TITLE, dt));
+
+				imgui.io_mut().delta_time = dt;
 
 				window_gl.window().request_redraw();
 

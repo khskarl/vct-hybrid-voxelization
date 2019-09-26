@@ -17,10 +17,17 @@ gl = "0.13.0"
 gl_helpers = { path = "../rs-gl_helpers" }
 # gl_helpers = { git = "https://gitlab.com/khskarl/rs-gl_helpers.git" }
 glutin = "0.22.0-alpha3"
+imgui = "0.2"
+imgui-gfx-renderer = "0.2"
+imgui-opengl-renderer = "0.6.0"
 
 [dependencies.img_hash]
 version = "2.0"
 features = ["rust-image"]
+
+[features]
+opengl = ["imgui-gfx-renderer/opengl"]
+default = ["opengl"]
 
 [profile.dev]
 opt-level = 0
