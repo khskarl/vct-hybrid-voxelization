@@ -1,5 +1,6 @@
 use crate::gl_utils;
 use crate::gpu_model::{GpuMaterial, GpuPrimitive};
+use crate::renderer_utils::*;
 use crate::scene::camera::*;
 use crate::scene::material::{Material, Texture};
 use crate::scene::model::Mesh;
@@ -9,15 +10,7 @@ use gl_helpers::*;
 use nalgebra_glm as glm;
 
 use std::collections::HashMap;
-use std::fs;
 use std::rc::Rc;
-
-struct Light {
-	direction: glm::Vec3,
-	position: glm::Vec3,
-	color: glm::Vec3,
-	intensity: f32,
-}
 
 pub struct Renderer {
 	dimensions: (usize, usize),
@@ -29,6 +22,8 @@ pub struct Renderer {
 	depth_map: GLTexture,
 	depth_map_framebuffer: GLFramebuffer,
 	depth_program: GLProgram,
+	voxel_view_program: GLProgram,
+	voxel_view_primitive: GpuPrimitive,
 	voxelized_scene: GLTexture,
 }
 
@@ -42,6 +37,7 @@ impl Renderer {
 		gl_utils::print_opengl_diagnostics();
 		gl_set_defaults();
 		unsafe {
+			gl::Enable(gl::PROGRAM_POINT_SIZE);
 			gl::FrontFace(gl::CW);
 		}
 		gl_set_viewport(
@@ -64,7 +60,7 @@ impl Renderer {
 
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
-		let pixels: Vec<u8> = (0..1000)
+		let pixels: Vec<u8> = (0..16 * 16 * 16)
 			.map(|i| {
 				if 400 < i && i < 500 && i % 2 == 0 {
 					255
@@ -75,55 +71,26 @@ impl Renderer {
 			.collect();
 
 		let voxelized_scene = GLTexture::new_3d(
-			10,
-			10,
-			10,
-			InternalFormat::R8,
+			16,
+			16,
+			16,
+			InternalFormat::R32F,
 			DataFormat::Red,
 			DataKind::UnsignedByte,
-			FilterMode::None,
-			Wrap::Clamp,
-			true,
+			FilterMode::Linear,
+			Wrap::Repeat,
+			false,
 			&pixels[..],
 		);
 
-		let mut lights = Vec::new();
-		lights.push(Light {
-			direction: glm::vec3(0.05, -0.9, -0.2),
-			position: glm::vec3(0.0, 2.0, 0.0),
-			color: glm::vec3(1.0, 1.0, 1.0),
-			intensity: 4.0,
-		});
-		lights.push(Light {
-			direction: glm::vec3(0.0, 0.0, 0.0),
-			position: glm::vec3(9.0, 2.0, 0.0),
-			color: glm::vec3(0.058, 0.513, 0.415),
-			intensity: 1.0,
-		});
-		lights.push(Light {
-			direction: glm::vec3(0.0, 0.0, 0.0),
-			position: glm::vec3(-9.0, 2.0, 0.0),
-			color: glm::vec3(0.823, 0.117, 0.568),
-			intensity: 1.0,
-		});
+		let lights = load_lights();
 
-		let pbr_program = {
-			let vs_src =
-				fs::read_to_string("src/shaders/pbr.vert").expect("Couldn't read the vertex shader :(");
-			let fs_src =
-				fs::read_to_string("src/shaders/pbr.frag").expect("Couldn't read the fragment shader :(");
+		let pbr_program = load_pbr_program();
+		let depth_program = load_depth_program();
+		let voxel_view_program = load_voxel_view_program();
 
-			GLProgram::new(&vs_src[..], &fs_src[..])
-		};
-
-		let depth_program = {
-			let vs_src = fs::read_to_string("src/shaders/depth_pass.vert")
-				.expect("Couldn't read the vertex shader :(");
-			let fs_src = fs::read_to_string("src/shaders/depth_pass.frag")
-				.expect("Couldn't read the fragment shader :(");
-
-			GLProgram::new(&vs_src[..], &fs_src[..])
-		};
+		let voxel_view_primitive =
+			GpuPrimitive::from_volume((16.0, 16.0, 16.0), (16, 16, 16), &voxel_view_program);
 
 		Renderer {
 			dimensions: (logical_size.width as usize, logical_size.height as usize),
@@ -135,6 +102,8 @@ impl Renderer {
 			depth_map,
 			depth_map_framebuffer,
 			depth_program,
+			voxel_view_program,
+			voxel_view_primitive,
 			voxelized_scene,
 		}
 	}
@@ -172,7 +141,11 @@ impl Renderer {
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
 		gl_clear(true, true, true);
 
-		self.pbr_program.bind();
+		let proj_view: [f32; 16] = {
+			let pv = camera.projection() * camera.view();
+			let transmute_me: [[f32; 4]; 4] = pv.into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
 
 		let proj: [f32; 16] = {
 			let transmute_me: [[f32; 4]; 4] = camera.projection().into();
@@ -183,6 +156,26 @@ impl Renderer {
 			let transmute_me: [[f32; 4]; 4] = camera.view().into();
 			unsafe { std::mem::transmute(transmute_me) }
 		};
+
+		self.voxel_view_program.bind();
+		self
+			.voxel_view_program
+			.get_uniform("volume")
+			.set_sampler_3d(&self.voxelized_scene, 0);
+
+		self
+			.voxel_view_program
+			.get_uniform("mvp")
+			.set_mat4f(&proj_view);
+		self.voxel_view_primitive.bind();
+
+		gl_draw_arrays(
+			DrawMode::Points,
+			0,
+			self.voxel_view_primitive.count_vertices(),
+		);
+
+		self.pbr_program.bind();
 
 		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
 		self.pbr_program.get_uniform("view").set_mat4f(&view);
@@ -327,31 +320,11 @@ impl Renderer {
 		} else {
 			println!("Loading GPU texture '{}'...", key);
 
-			let texture_rc = Rc::new(self.load_texture(texture));
+			let texture_rc = Rc::new(load_texture(texture));
 			self.textures.insert(key.to_owned(), Rc::clone(&texture_rc));
 
 			return Rc::clone(&texture_rc);
 		}
-	}
-	fn load_texture(&mut self, texture: &Texture) -> GLTexture {
-		use image::GenericImage;
-
-		let (width, height) = texture.image().dimensions();
-		let raw_pixels = &texture.image().raw_pixels()[..];
-
-		let gl_texture = GLTexture::new_2d(
-			width as usize,
-			height as usize,
-			InternalFormat::RGB32F,
-			DataFormat::RGB,
-			DataKind::UnsignedByte,
-			FilterMode::Linear,
-			Wrap::Repeat,
-			true,
-			raw_pixels,
-		);
-
-		gl_texture
 	}
 }
 

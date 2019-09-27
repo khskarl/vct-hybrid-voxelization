@@ -4,6 +4,7 @@ use std::time::Instant;
 mod gl_utils;
 mod gpu_model;
 mod renderer;
+mod renderer_utils;
 
 use nalgebra_glm as glm;
 
@@ -50,7 +51,7 @@ fn main() {
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	{
 		let mut resources = Resources::new();
-		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
+		// renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
 		// renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
 		// renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}

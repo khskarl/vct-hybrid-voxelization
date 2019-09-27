@@ -1,20 +1,30 @@
 #version 330
 
-uniform mat4 proj;
-uniform mat4 view;
-
 layout (location = 0) in vec3 aPosition;
 
-out vec3 vw_position;
-out vec2 v_uv;
-out vec3 v_normal;
-out vec4 vl_position;
+out VSOUT{
+  vec4 position;
+  int index;
+	vec4 color;
+} vsout;
+
+uniform sampler3D volume;
+uniform mat4 mvp;
 
 void main() {
-	vw_position = aPosition;
-	vl_position = light_matrix * vec4(vw_position, 1.0);
-	v_uv = aTexCoord;
-	v_normal = aNormal;
+	int id = gl_VertexID;
+	int k = id % 16;
+	int j = k % 16;
+	int i = j % 16;
 
-	gl_Position = (proj * view) * vec4(aPosition, 1.0);
+	vec4 voxel = texelFetch(volume, ivec3(i, j, k), 0);
+
+	//
+	gl_Position = mvp * vec4(aPosition, 1.0);
+
+	vsout.position = gl_Position;
+	vsout.index = gl_VertexID;
+	vsout.color = voxel;
+
+	gl_PointSize = 10;
 }

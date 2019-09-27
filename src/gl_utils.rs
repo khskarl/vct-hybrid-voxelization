@@ -19,6 +19,12 @@ pub fn print_opengl_diagnostics() {
 		gl_info.glsl_minor()
 	);
 
+	let mut max_geometry_tex = 0;
+	unsafe {
+		gl::GetIntegerv(gl::MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, &mut max_geometry_tex);
+	}
+	println!("MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
+
 	print_needed_extensions();
 }
 
