@@ -60,26 +60,20 @@ impl Renderer {
 
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
-		let pixels: Vec<u8> = (0..16 * 16 * 16)
-			.map(|i| {
-				if 400 < i && i < 500 && i % 2 == 0 {
-					255
-				} else {
-					0
-				}
-			})
+		let pixels: Vec<u8> = (0..16 * 16 * 16 * 4)
+			.map(|i| if i % 2 == 0 { 255 } else { 0 })
 			.collect();
 
 		let voxelized_scene = GLTexture::new_3d(
 			16,
 			16,
 			16,
-			InternalFormat::R32F,
-			DataFormat::Red,
+			InternalFormat::RGBA32F,
+			DataFormat::RGBA,
 			DataKind::UnsignedByte,
 			FilterMode::Linear,
 			Wrap::Repeat,
-			false,
+			true,
 			&pixels[..],
 		);
 

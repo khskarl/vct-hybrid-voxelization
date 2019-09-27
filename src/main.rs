@@ -26,6 +26,7 @@ fn main() {
 
 	let window_gl = {
 		let window_gl = glutin::ContextBuilder::new()
+			.with_gl_profile(glutin::GlProfile::Core)
 			.build_windowed(window_builder, &event_loop)
 			.unwrap();
 		unsafe { window_gl.make_current() }.unwrap()

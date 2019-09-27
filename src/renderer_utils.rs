@@ -25,10 +25,9 @@ pub fn load_depth_program() -> GLProgram {
 
 pub fn load_voxel_view_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/voxel_view.vert").expect(VERTEX_EXPECT);
-	let gs_src = fs::read_to_string("src/shaders/voxel_view.geom").expect(GEOMETRY_EXPECT);
 	let fs_src = fs::read_to_string("src/shaders/voxel_view.frag").expect(FRAGMENT_EXPECT);
 
-	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
+	GLProgram::new(&vs_src[..], &fs_src[..])
 }
 
 //////////////////////

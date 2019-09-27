@@ -1,14 +1,11 @@
-#version 330
+#version 450 core
 
 layout (location = 0) in vec3 aPosition;
 
-out VSOUT{
-  vec4 position;
-  int index;
-	vec4 color;
-} vsout;
+out vec4 v_color;
+out vec3 vw_position;
 
-uniform sampler3D volume;
+layout (binding = 0) uniform sampler3D volume;
 uniform mat4 mvp;
 
 void main() {
@@ -19,12 +16,11 @@ void main() {
 
 	vec4 voxel = texelFetch(volume, ivec3(i, j, k), 0);
 
-	//
 	gl_Position = mvp * vec4(aPosition, 1.0);
 
-	vsout.position = gl_Position;
-	vsout.index = gl_VertexID;
-	vsout.color = voxel;
+	// vsout.color = voxel;
+	vw_position = aPosition;
+	v_color = voxel;
 
-	gl_PointSize = 10;
+	gl_PointSize = gl_Position.z;
 }
