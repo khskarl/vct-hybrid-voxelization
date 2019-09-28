@@ -1,3 +1,4 @@
+use crate::gpu_model::{GpuMaterial, GpuPrimitive};
 use crate::scene::material::{Material, Texture};
 use gl_helpers::*;
 use nalgebra_glm as glm;
@@ -53,6 +54,19 @@ pub fn load_texture(texture: &Texture) -> GLTexture {
 	gl_texture
 }
 
+pub fn load_depth_texture() -> GLTexture {
+	GLTexture::new_null_2d(
+		2048,
+		2048,
+		InternalFormat::DepthComponent24,
+		DataFormat::DepthComponent,
+		DataKind::Float,
+		FilterMode::Linear,
+		Wrap::Clamp,
+		false,
+	)
+}
+
 ///////////////////
 // LIGHT HELPERS //
 pub struct Light {
@@ -60,6 +74,33 @@ pub struct Light {
 	pub position: glm::Vec3,
 	pub color: glm::Vec3,
 	pub intensity: f32,
+}
+
+pub fn lights_to_soa(lights: &Vec<Light>) -> (Vec<f32>, Vec<f32>, Vec<f32>) {
+	let directions: Vec<f32> = lights
+		.iter()
+		.map(|l| l.direction.into_iter())
+		.flatten()
+		.cloned()
+		.collect();
+
+	let positions: Vec<f32> = lights
+		.iter()
+		.map(|l| l.position.into_iter())
+		.flatten()
+		.cloned()
+		.collect();
+
+	let colors_unflattened: Vec<glm::Vec3> = lights.iter().map(|l| (l.color * l.intensity)).collect();
+
+	let colors: Vec<f32> = colors_unflattened
+		.iter()
+		.map(|c| c)
+		.flatten()
+		.cloned()
+		.collect();
+
+	(directions, positions, colors)
 }
 
 pub fn load_lights() -> Vec<Light> {
@@ -84,4 +125,20 @@ pub fn load_lights() -> Vec<Light> {
 	});
 
 	lights
+}
+
+pub fn light_matrix(light: &Light) -> [f32; 16] {
+	let light_view = glm::look_at_rh(
+		&light.position,
+		&(light.position + light.direction),
+		&glm::vec3(0.0, 1.0, 0.0),
+	);
+	let light_proj = glm::ortho_rh_zo(-20.0, 10.0, -20.0, 20.0, 1.0, 20.0);
+
+	let light_matrix: [f32; 16] = {
+		let transmute_me: [[f32; 4]; 4] = (light_proj * light_view).into();
+		unsafe { std::mem::transmute(transmute_me) }
+	};
+
+	light_matrix
 }

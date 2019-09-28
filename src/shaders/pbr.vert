@@ -1,7 +1,6 @@
 #version 330
 
-uniform mat4 proj;
-uniform mat4 view;
+uniform mat4 pv;
 uniform mat4 light_matrix;
 
 layout (location = 0) in vec3 aPosition;
@@ -19,5 +18,5 @@ void main() {
 	v_uv = aTexCoord;
 	v_normal = aNormal;
 
-	gl_Position = (proj * view) * vec4(aPosition, 1.0);
+	gl_Position = (pv) * vec4(aPosition, 1.0);
 }

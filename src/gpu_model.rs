@@ -1,4 +1,3 @@
-use crate::scene::material::Material;
 use crate::scene::model::Primitive;
 use gl_helpers::*;
 

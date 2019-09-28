@@ -16,14 +16,14 @@ use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
-	let logical_size = glutin::dpi::LogicalSize::new(1280.0, 720.0);
+	let (width, height) = (1280, 720);
 
-	let event_loop = glutin::event_loop::EventLoop::new();
-
+	let logical_size = glutin::dpi::LogicalSize::from((width, height));
 	let window_builder = glutin::window::WindowBuilder::new()
 		.with_title(WINDOW_TITLE)
 		.with_inner_size(logical_size);
 
+	let event_loop = glutin::event_loop::EventLoop::new();
 	let window_gl = {
 		let window_gl = glutin::ContextBuilder::new()
 			.with_gl_profile(glutin::GlProfile::Core)
@@ -38,14 +38,7 @@ fn main() {
 
 	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
-	{
-		let logical_size = window_gl.window().inner_size();
-		let dpi_factor = window_gl.window().hidpi_factor();
-		let physical_size = logical_size.to_physical(dpi_factor);
 
-		imgui.io_mut().display_size = [physical_size.width as f32, physical_size.height as f32];
-		window_gl.resize(logical_size.to_physical(dpi_factor));
-	}
 	let imgui_renderer =
 		imgui_opengl_renderer::Renderer::new(&mut imgui, |s| window_gl.get_proc_address(s) as _);
 
@@ -53,7 +46,7 @@ fn main() {
 	{
 		let mut resources = Resources::new();
 		// renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
-		// renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
+		renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
 		// renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}
 
@@ -75,7 +68,11 @@ fn main() {
 				WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
 				WindowEvent::Resized(logical_size) => {
 					let dpi_factor = window_gl.window().hidpi_factor();
-					window_gl.resize(logical_size.to_physical(dpi_factor));
+					let physical_size = logical_size.to_physical(dpi_factor);
+
+					window_gl.resize(physical_size);
+					imgui.io_mut().display_size = [physical_size.width as f32, physical_size.height as f32];
+					renderer.set_viewport_size((physical_size.width as usize, physical_size.height as usize));
 				}
 				WindowEvent::KeyboardInput {
 					input: KeyboardInput {
@@ -107,10 +104,26 @@ fn main() {
 					imgui.io_mut().update_delta_time(start_frame_time);
 
 					let ui = imgui.frame();
+					{
+						use imgui::*;
+						ui.show_demo_window(&mut true);
+						Window::new(im_str!("Diagnostics"))
+							.size([300.0, 100.0], Condition::FirstUseEver)
+							.build(&ui, || {
+								ui.text(format!("Frame rate: {} frames/s", 1.0 / dt));
+								ui.text(format!("Frame time: {} ms", dt * 1000.0));
+								ui.separator();
+
+								let mouse_pos = ui.io().mouse_pos;
+								ui.text(format!(
+									"Mouse Position: ({:.1},{:.1})",
+									mouse_pos[0], mouse_pos[1]
+								));
+							});
+					}
 
 					renderer.render(&camera);
 
-					ui.show_demo_window(&mut true);
 					imgui_renderer.render(ui);
 					window_gl.swap_buffers().unwrap();
 				}

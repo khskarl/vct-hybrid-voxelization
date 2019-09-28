@@ -32,6 +32,25 @@ impl Camera {
 		)
 	}
 
+	pub fn proj_view(&self) -> glm::Mat4 {
+		self.projection() * self.view()
+	}
+
+	pub fn projection_raw(&self) -> [f32; 16] {
+		let transmute_me: [[f32; 4]; 4] = self.projection().into();
+		unsafe { std::mem::transmute(transmute_me) }
+	}
+
+	pub fn view_raw(&self) -> [f32; 16] {
+		let transmute_me: [[f32; 4]; 4] = self.view().into();
+		unsafe { std::mem::transmute(transmute_me) }
+	}
+
+	pub fn proj_view_raw(&self) -> [f32; 16] {
+		let transmute_me: [[f32; 4]; 4] = self.proj_view().into();
+		unsafe { std::mem::transmute(transmute_me) }
+	}
+
 	pub fn up(&self) -> glm::Vec3 {
 		glm::make_vec3(&Self::UP)
 	}

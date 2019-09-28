@@ -1,4 +1,4 @@
-use crate::gl_utils;
+use crate::gl_utils::*;
 use crate::gpu_model::{GpuMaterial, GpuPrimitive};
 use crate::renderer_utils::*;
 use crate::scene::camera::*;
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Renderer {
-	dimensions: (usize, usize),
+	viewport_size: (usize, usize),
 	primitives: Vec<GpuPrimitive>,
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
@@ -33,31 +33,15 @@ impl Renderer {
 		logical_size: glutin::dpi::LogicalSize,
 	) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
-
-		gl_utils::print_opengl_diagnostics();
 		gl_set_defaults();
+		print_opengl_diagnostics();
+
 		unsafe {
 			gl::Enable(gl::PROGRAM_POINT_SIZE);
 			gl::FrontFace(gl::CW);
 		}
-		gl_set_viewport(
-			0,
-			0,
-			logical_size.width as usize,
-			logical_size.height as usize,
-		);
 
-		let depth_map = GLTexture::new_null_2d(
-			2048,
-			2048,
-			InternalFormat::DepthComponent24,
-			DataFormat::DepthComponent,
-			DataKind::Float,
-			FilterMode::Linear,
-			Wrap::Clamp,
-			false,
-		);
-
+		let depth_map = load_depth_texture();
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
 		let pixels: Vec<u8> = (0..16 * 16 * 16 * 4)
@@ -68,34 +52,29 @@ impl Renderer {
 			16,
 			16,
 			16,
-			InternalFormat::RGBA32F,
-			DataFormat::RGBA,
+			InternalFormat::R32F,
+			DataFormat::Red,
 			DataKind::UnsignedByte,
 			FilterMode::Linear,
 			Wrap::Repeat,
 			true,
 			&pixels[..],
 		);
-
-		let lights = load_lights();
-
-		let pbr_program = load_pbr_program();
-		let depth_program = load_depth_program();
 		let voxel_view_program = load_voxel_view_program();
 
 		let voxel_view_primitive =
 			GpuPrimitive::from_volume((16.0, 16.0, 16.0), (16, 16, 16), &voxel_view_program);
 
 		Renderer {
-			dimensions: (logical_size.width as usize, logical_size.height as usize),
+			viewport_size: (logical_size.width as usize, logical_size.height as usize),
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
-			pbr_program,
-			lights,
+			pbr_program: load_pbr_program(),
+			lights: load_lights(),
 			depth_map,
 			depth_map_framebuffer,
-			depth_program,
+			depth_program: load_depth_program(),
 			voxel_view_program,
 			voxel_view_primitive,
 			voxelized_scene,
@@ -130,26 +109,20 @@ impl Renderer {
 
 	pub fn render(&self, camera: &Camera) {
 		self.render_to_shadow_map();
+
 		gl_set_cull_face(CullFace::Back);
-		gl_set_viewport(0, 0, self.dimensions.0, self.dimensions.1);
+		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
 		gl_clear(true, true, true);
 
-		let proj_view: [f32; 16] = {
-			let pv = camera.projection() * camera.view();
-			let transmute_me: [[f32; 4]; 4] = pv.into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
+		self.render_voxels(camera);
+		self.render_scene(camera);
+	}
 
-		let proj: [f32; 16] = {
-			let transmute_me: [[f32; 4]; 4] = camera.projection().into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
-
-		let view: [f32; 16] = {
-			let transmute_me: [[f32; 4]; 4] = camera.view().into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
+	pub fn render_voxels(&self, camera: &Camera) {
+		let proj_view: [f32; 16] = camera.proj_view_raw();
+		let proj: [f32; 16] = camera.projection_raw();
+		let view: [f32; 16] = camera.view_raw();
 
 		self.voxel_view_program.bind();
 		self
@@ -161,6 +134,7 @@ impl Renderer {
 			.voxel_view_program
 			.get_uniform("mvp")
 			.set_mat4f(&proj_view);
+
 		self.voxel_view_primitive.bind();
 
 		gl_draw_arrays(
@@ -168,66 +142,36 @@ impl Renderer {
 			0,
 			self.voxel_view_primitive.count_vertices(),
 		);
+	}
 
-		self.pbr_program.bind();
+	pub fn render_scene(&self, camera: &Camera) {
+		let proj_view: [f32; 16] = camera.proj_view_raw();
+		let proj: [f32; 16] = camera.projection_raw();
+		let view: [f32; 16] = camera.view_raw();
 
-		self.pbr_program.get_uniform("proj").set_mat4f(&proj);
-		self.pbr_program.get_uniform("view").set_mat4f(&view);
-		self.pbr_program.get_uniform("time").set_1f(0.1_f32);
+		let program = &self.pbr_program;
+		program.bind();
+		program.get_uniform("pv").set_mat4f(&proj_view);
 
-		self
-			.pbr_program
+		program
 			.get_uniform("light_matrix")
 			.set_mat4f(&light_matrix(&self.lights[0]));
-		self
-			.pbr_program
+		program
 			.get_uniform("shadow_map")
 			.set_sampler_2d(&self.depth_map, 4);
 
-		let directions: Vec<f32> = self
-			.lights
-			.iter()
-			.map(|l| l.direction.into_iter())
-			.flatten()
-			.cloned()
-			.collect();
-
-		let positions: Vec<f32> = self
-			.lights
-			.iter()
-			.map(|l| l.position.into_iter())
-			.flatten()
-			.cloned()
-			.collect();
-
-		let colors_unflattened: Vec<glm::Vec3> = self
-			.lights
-			.iter()
-			.map(|l| (l.color * l.intensity))
-			.collect();
-
-		let colors: Vec<f32> = colors_unflattened
-			.iter()
-			.map(|c| c)
-			.flatten()
-			.cloned()
-			.collect();
-
-		self
-			.pbr_program
+		//
+		let (directions, positions, colors) = lights_to_soa(&self.lights);
+		program
 			.get_uniform("light_direction")
 			.set_3fv(&directions[..]);
-
-		self
-			.pbr_program
+		program
 			.get_uniform("light_position")
 			.set_3fv(&positions[..]);
-
 		self
 			.pbr_program
 			.get_uniform("light_color")
 			.set_3fv(&colors[..]);
-
 		self
 			.pbr_program
 			.get_uniform("num_lights")
@@ -241,23 +185,23 @@ impl Renderer {
 		for primitive in &self.primitives {
 			primitive.bind();
 
-			let material = &primitive.material();
+			let mat = &primitive.material();
 			self
 				.pbr_program
 				.get_uniform("albedo_map")
-				.set_sampler_2d(&material.albedo(), 0);
+				.set_sampler_2d(&mat.albedo(), 0);
 			self
 				.pbr_program
 				.get_uniform("metaghness_map")
-				.set_sampler_2d(&material.metaghness(), 1);
+				.set_sampler_2d(&mat.metaghness(), 1);
 			self
 				.pbr_program
 				.get_uniform("normal_map")
-				.set_sampler_2d(&material.normal(), 2);
+				.set_sampler_2d(&mat.normal(), 2);
 			self
 				.pbr_program
 				.get_uniform("occlusion_map")
-				.set_sampler_2d(&material.occlusion(), 3);
+				.set_sampler_2d(&mat.occlusion(), 3);
 
 			gl_draw_elements(
 				DrawMode::Triangles,
@@ -266,6 +210,10 @@ impl Renderer {
 				0,
 			);
 		}
+	}
+
+	pub fn set_viewport_size(&mut self, size: (usize, usize)) {
+		self.viewport_size = size;
 	}
 
 	pub fn submit_mesh(&mut self, mesh: &Mesh) {
@@ -320,20 +268,4 @@ impl Renderer {
 			return Rc::clone(&texture_rc);
 		}
 	}
-}
-
-fn light_matrix(light: &Light) -> [f32; 16] {
-	let light_view = glm::look_at_rh(
-		&light.position,
-		&(light.position + light.direction),
-		&glm::vec3(0.0, 1.0, 0.0),
-	);
-	let light_proj = glm::ortho_rh_zo(-20.0, 10.0, -20.0, 20.0, 1.0, 20.0);
-
-	let light_matrix: [f32; 16] = {
-		let transmute_me: [[f32; 4]; 4] = (light_proj * light_view).into();
-		unsafe { std::mem::transmute(transmute_me) }
-	};
-
-	light_matrix
 }
