@@ -7,10 +7,13 @@ use crate::scene::model::Mesh;
 use gl;
 use gl_helpers::*;
 
+use glm::UVec2;
 use nalgebra_glm as glm;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+
+use crate::textures::Texture3D;
 
 pub struct Renderer {
 	viewport_size: (usize, usize),
@@ -22,9 +25,9 @@ pub struct Renderer {
 	depth_map: GLTexture,
 	depth_map_framebuffer: GLFramebuffer,
 	depth_program: GLProgram,
-	voxel_view_program: GLProgram,
-	voxel_view_primitive: GpuPrimitive,
-	voxelized_scene: GLTexture,
+	volume_view_program: GLProgram,
+	volume_view_primitive: GpuPrimitive,
+	volume_scene: Texture3D,
 }
 
 impl Renderer {
@@ -44,26 +47,11 @@ impl Renderer {
 		let depth_map = load_depth_texture();
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
-		let pixels: Vec<u8> = (0..16 * 16 * 16 * 4)
-			.map(|i| if i % 2 == 0 { 255 } else { 0 })
-			.collect();
-
-		let voxelized_scene = GLTexture::new_3d(
-			16,
-			16,
-			16,
-			InternalFormat::R32F,
-			DataFormat::Red,
-			DataKind::UnsignedByte,
-			FilterMode::Linear,
-			Wrap::Repeat,
-			true,
-			&pixels[..],
-		);
-		let voxel_view_program = load_voxel_view_program();
-
-		let voxel_view_primitive =
-			GpuPrimitive::from_volume((16.0, 16.0, 16.0), (16, 16, 16), &voxel_view_program);
+		// Volume setup
+		let volume_scene = Texture3D::new([16, 16, 16].into());
+		let volume_view_program = load_voxel_view_program();
+		let volume_view_primitive =
+			GpuPrimitive::from_volume((16.0, 16.0, 16.0), (16, 16, 16), &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -75,9 +63,9 @@ impl Renderer {
 			depth_map,
 			depth_map_framebuffer,
 			depth_program: load_depth_program(),
-			voxel_view_program,
-			voxel_view_primitive,
-			voxelized_scene,
+			volume_view_program,
+			volume_view_primitive,
+			volume_scene,
 		}
 	}
 
@@ -121,33 +109,28 @@ impl Renderer {
 
 	pub fn render_voxels(&self, camera: &Camera) {
 		let proj_view: [f32; 16] = camera.proj_view_raw();
-		let proj: [f32; 16] = camera.projection_raw();
-		let view: [f32; 16] = camera.view_raw();
 
-		self.voxel_view_program.bind();
-		self
-			.voxel_view_program
-			.get_uniform("volume")
-			.set_sampler_3d(&self.voxelized_scene, 0);
+		self.volume_scene.bind();
+		self.volume_view_program.bind();
+		let loc = self.volume_view_program.get_uniform("volume").location();
+		self.volume_scene.set_sampler(0, loc as u32);
 
 		self
-			.voxel_view_program
+			.volume_view_program
 			.get_uniform("mvp")
 			.set_mat4f(&proj_view);
 
-		self.voxel_view_primitive.bind();
+		self.volume_view_primitive.bind();
 
 		gl_draw_arrays(
 			DrawMode::Points,
 			0,
-			self.voxel_view_primitive.count_vertices(),
+			self.volume_view_primitive.count_vertices(),
 		);
 	}
 
 	pub fn render_scene(&self, camera: &Camera) {
 		let proj_view: [f32; 16] = camera.proj_view_raw();
-		let proj: [f32; 16] = camera.projection_raw();
-		let view: [f32; 16] = camera.view_raw();
 
 		let program = &self.pbr_program;
 		program.bind();
@@ -222,6 +205,10 @@ impl Renderer {
 			let gpu_primitive = GpuPrimitive::new(&primitive, &self.pbr_program, material);
 			self.primitives.push(gpu_primitive);
 		}
+	}
+
+	pub fn light(&mut self, index: usize) -> &mut Light {
+		&mut self.lights[index]
 	}
 
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {

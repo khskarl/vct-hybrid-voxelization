@@ -9,6 +9,6 @@ layout(binding = 0) uniform sampler3D volume;
 
 void main() {
 	out_color = v_color;
-	// out_color = vec4(v_color / 16.0, 1.0) + v_color;
-	out_color = vec4(v_color) + v_color;
+	out_color = vec4(vw_position / 16.0, 1.0);
+	// out_color = vec4(v_color);
 }

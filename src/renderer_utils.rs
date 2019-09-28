@@ -6,9 +6,9 @@ use std::fs;
 
 ////////////////////
 // SHADER HELPERS //
-static VERTEX_EXPECT: &'static str = "Couldn't read the vertex shader :(";
-static GEOMETRY_EXPECT: &'static str = "Couldn't read the geometry shader :(";
-static FRAGMENT_EXPECT: &'static str = "Couldn't read the fragment shader :(";
+static VERTEX_EXPECT: &str = "Couldn't read the vertex shader :(";
+static GEOMETRY_EXPECT: &str = "Couldn't read the geometry shader :(";
+static FRAGMENT_EXPECT: &str = "Couldn't read the fragment shader :(";
 
 pub fn load_pbr_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/pbr.vert").expect(VERTEX_EXPECT);
@@ -26,9 +26,10 @@ pub fn load_depth_program() -> GLProgram {
 
 pub fn load_voxel_view_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/voxel_view.vert").expect(VERTEX_EXPECT);
+	let gs_src = fs::read_to_string("src/shaders/voxel_view.geom").expect(GEOMETRY_EXPECT);
 	let fs_src = fs::read_to_string("src/shaders/voxel_view.frag").expect(FRAGMENT_EXPECT);
 
-	GLProgram::new(&vs_src[..], &fs_src[..])
+	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
 }
 
 //////////////////////
@@ -39,7 +40,7 @@ pub fn load_texture(texture: &Texture) -> GLTexture {
 	let (width, height) = texture.image().dimensions();
 	let raw_pixels = &texture.image().raw_pixels()[..];
 
-	let gl_texture = GLTexture::new_2d(
+	GLTexture::new_2d(
 		width as usize,
 		height as usize,
 		InternalFormat::RGB32F,
@@ -49,9 +50,7 @@ pub fn load_texture(texture: &Texture) -> GLTexture {
 		Wrap::Repeat,
 		true,
 		raw_pixels,
-	);
-
-	gl_texture
+	)
 }
 
 pub fn load_depth_texture() -> GLTexture {

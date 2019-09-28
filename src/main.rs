@@ -5,6 +5,7 @@ mod gl_utils;
 mod gpu_model;
 mod renderer;
 mod renderer_utils;
+mod textures;
 
 use nalgebra_glm as glm;
 
@@ -45,14 +46,14 @@ fn main() {
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	{
 		let mut resources = Resources::new();
-		// renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
+		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
 		renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
 		// renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
 	}
 
 	let mut key_states = KeyStates::new();
 
-	let target_dt = 0.01666666666;
+	let target_dt = 0.016_666_668;
 	let mut dt = target_dt;
 	let mut start_frame_time = Instant::now();
 
@@ -106,7 +107,7 @@ fn main() {
 					let ui = imgui.frame();
 					{
 						use imgui::*;
-						ui.show_demo_window(&mut true);
+
 						Window::new(im_str!("Diagnostics"))
 							.size([300.0, 100.0], Condition::FirstUseEver)
 							.build(&ui, || {
@@ -120,6 +121,17 @@ fn main() {
 									mouse_pos[0], mouse_pos[1]
 								));
 							});
+
+						Window::new(im_str!("Lights")).build(&ui, || {
+							let light = renderer.light(0);
+							ui.text(im_str!("Sun light:"));
+
+							ColorEdit::new(im_str!("SunColor##1"), light.color.as_mut()).build(&ui);
+							ui.drag_float3(im_str!("SunDirection##1"), light.direction.as_mut())
+								.min(-1.0)
+								.max(1.0)
+								.build();
+						});
 					}
 
 					renderer.render(&camera);
