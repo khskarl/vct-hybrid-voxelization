@@ -15,6 +15,10 @@ use scene::model::{Mesh, Resources};
 
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 
+struct ImGuiState {
+	resolution_index: usize,
+}
+
 fn main() {
 	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
 	let (width, height) = (1280, 720);
@@ -36,6 +40,9 @@ fn main() {
 	let mut imgui = imgui::Context::create();
 	let mut platform = WinitPlatform::init(&mut imgui);
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
+	let mut imgui_state = ImGuiState {
+		resolution_index: 2,
+	};
 
 	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
@@ -107,6 +114,7 @@ fn main() {
 					let ui = imgui.frame();
 					{
 						use imgui::*;
+						use std::borrow::Cow;
 
 						Window::new(im_str!("Diagnostics"))
 							.size([300.0, 100.0], Condition::FirstUseEver)
@@ -145,6 +153,13 @@ fn main() {
 								.min(-100.0)
 								.max(100.0)
 								.build();
+
+							let index = &mut imgui_state.resolution_index;
+							let items = [16, 32, 64, 128, 256];
+							ComboBox::new(im_str!("Resolution")).build_simple(&ui, index, &items, &|x| {
+								Cow::from(im_str!("{}x{}x{}", x, x, x))
+							});
+							*volume.resolution_mut() = items[*index];
 						});
 					}
 
