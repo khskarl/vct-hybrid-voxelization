@@ -1,6 +1,7 @@
 use crate::scene::model::Primitive;
 use gl_helpers::*;
-
+use glm::UVec3;
+use nalgebra_glm as glm;
 use std::rc::Rc;
 
 pub struct GpuPrimitive {
@@ -12,27 +13,14 @@ pub struct GpuPrimitive {
 }
 
 impl GpuPrimitive {
-	pub fn from_volume(
-		size: (f32, f32, f32),
-		resolution: (usize, usize, usize),
-		program: &GLProgram,
-	) -> GpuPrimitive {
+	pub fn from_volume(resolution: UVec3, program: &GLProgram) -> GpuPrimitive {
 		let mut buffer = Vec::<f32>::new();
 
-		let (width, height, depth) = resolution;
-
-		let dx = size.0 / width as f32;
-		let dy = size.1 / height as f32;
-		let dz = size.2 / depth as f32;
-
-		for k in 0..depth {
-			for j in 0..height {
-				for i in 0..width {
-					buffer.push(i as f32 * dx);
-					buffer.push(j as f32 * dy);
-					buffer.push(k as f32 * dz);
-				}
-			}
+		let (width, height, depth) = (resolution.x, resolution.y, resolution.z);
+		for i in 0..width * height * depth {
+			buffer.push(0.0);
+			buffer.push(0.0);
+			buffer.push(0.0);
 		}
 
 		let vertex_buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &buffer);
@@ -46,7 +34,7 @@ impl GpuPrimitive {
 			vertex_array,
 			vertex_buffer,
 			index_buffer: None,
-			count_vertices: width * height * depth,
+			count_vertices: (width * height * depth) as usize,
 			material: None,
 		}
 	}

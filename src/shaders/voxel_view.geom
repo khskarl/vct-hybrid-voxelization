@@ -14,21 +14,24 @@ out vec3 vw_position;
 
 uniform sampler3D volume;
 uniform mat4 mvp;
+uniform int resolution;
 
 layout (points) in;
 layout(triangle_strip, max_vertices = 12) out;
 void main() {
+	float voxel_size = (1.0 / float(resolution)) * 2.0;
+
 	v_color = v_in[0].color;
 	vw_position = v_in[0].w_position;
+
+	vec4 center = v_in[0].position;
 
 	if(v_color.r < 0.01)
 		return;
 
-	vec4 center = v_in[0].position;
-
-	vec4 dx = mvp[0];
-	vec4 dy = mvp[1];
-	vec4 dz = mvp[2];
+	vec4 dx = mvp[0] * voxel_size;
+	vec4 dy = mvp[1] * voxel_size;
+	vec4 dz = mvp[2] * voxel_size;
 
 	vec4 p1 = center;
 	vec4 p2 = center + dx;

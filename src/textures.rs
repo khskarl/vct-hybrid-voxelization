@@ -1,22 +1,23 @@
+use crate::gpu_model::GpuPrimitive;
 use gl;
 use gl_helpers::*;
-
-use glm::{UVec3, Vec3};
+use glm::UVec3;
 use nalgebra_glm as glm;
-
-use std::{mem, ptr};
+use std::mem;
 
 pub struct Texture3D {
 	id: u32,
 	resolution: UVec3,
+	primitive: GpuPrimitive,
 }
 
 impl Texture3D {
-	pub fn new(resolution: UVec3) -> Texture3D {
+	pub fn new(resolution: UVec3, program: &GLProgram) -> Texture3D {
 		use gl::*;
 
-		let mut handle = 0;
+		let primitive = GpuPrimitive::from_volume([512, 512, 512].into(), &program);
 
+		let mut handle = 0;
 		unsafe {
 			GenTextures(1, &mut handle);
 			BindTexture(TEXTURE_3D, handle);
@@ -47,7 +48,14 @@ impl Texture3D {
 		Texture3D {
 			id: handle,
 			resolution,
+			primitive,
 		}
+	}
+
+	pub fn draw(&self) {
+		self.bind();
+		self.primitive.bind();
+		gl_draw_arrays(DrawMode::Points, 0, self.count_cells() as usize);
 	}
 
 	pub fn bind(&self) {
@@ -66,5 +74,9 @@ impl Texture3D {
 
 	pub fn count_cells(&self) -> u32 {
 		self.resolution.x * self.resolution.y * self.resolution.z
+	}
+
+	pub fn resolution(&self) -> u32 {
+		self.resolution.x
 	}
 }

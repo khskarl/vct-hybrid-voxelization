@@ -10,19 +10,21 @@ out VSOUT{
 
 layout (binding = 0) uniform sampler3D volume;
 uniform mat4 mvp;
+uniform int resolution;
 
 void main() {
-	int k = gl_VertexID % 16;
-	int j = k % 16;
-	int i = j % 16;
+	float voxel_size = (1.0 / float(resolution)) * 2.0;
 
-	float voxel = texelFetch(volume, ivec3(i, j, k), 0).r;
+	uint i = gl_VertexID % resolution;
+	uint j = (gl_VertexID / resolution) % resolution;
+	uint k = (gl_VertexID / resolution / resolution) % resolution;
 
-	gl_Position = mvp * vec4(aPosition, 1.0);
+	ivec3 texel_position = ivec3(i, j, k) + ivec3(aPosition);
+	float voxel = texelFetch(volume, texel_position, 0).r;
+
+	gl_Position = mvp * vec4(texel_position * voxel_size + vec3(voxel_size / 2.0), 1.0);
 
 	v_out.position = gl_Position;
-	v_out.w_position = aPosition;
+	v_out.w_position = texel_position;
 	v_out.color = vec4(voxel);
-
-	gl_PointSize = gl_Position.z;
 }

@@ -15,6 +15,11 @@ use std::rc::Rc;
 
 use crate::textures::Texture3D;
 
+pub enum RenderingMode {
+	Volume,
+	Scene,
+}
+
 pub struct Renderer {
 	viewport_size: (usize, usize),
 	primitives: Vec<GpuPrimitive>,
@@ -26,7 +31,6 @@ pub struct Renderer {
 	depth_map_framebuffer: GLFramebuffer,
 	depth_program: GLProgram,
 	volume_view_program: GLProgram,
-	volume_view_primitive: GpuPrimitive,
 	volume_scene: Texture3D,
 }
 
@@ -48,10 +52,9 @@ impl Renderer {
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
 		// Volume setup
-		let volume_scene = Texture3D::new([16, 16, 16].into());
+		let resolution = [64, 64, 64];
 		let volume_view_program = load_voxel_view_program();
-		let volume_view_primitive =
-			GpuPrimitive::from_volume((16.0, 16.0, 16.0), (16, 16, 16), &volume_view_program);
+		let volume_scene = Texture3D::new(resolution.into(), &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -64,7 +67,6 @@ impl Renderer {
 			depth_map_framebuffer,
 			depth_program: load_depth_program(),
 			volume_view_program,
-			volume_view_primitive,
 			volume_scene,
 		}
 	}
@@ -98,12 +100,13 @@ impl Renderer {
 	pub fn render(&self, camera: &Camera) {
 		self.render_to_shadow_map();
 
-		gl_set_cull_face(CullFace::Back);
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
 		gl_clear(true, true, true);
 
+		gl_set_cull_face(CullFace::None);
 		self.render_voxels(camera);
+		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
 	}
 
@@ -120,13 +123,12 @@ impl Renderer {
 			.get_uniform("mvp")
 			.set_mat4f(&proj_view);
 
-		self.volume_view_primitive.bind();
+		self
+			.volume_view_program
+			.get_uniform("resolution")
+			.set_1i(self.volume_scene.resolution() as i32);
 
-		gl_draw_arrays(
-			DrawMode::Points,
-			0,
-			self.volume_view_primitive.count_vertices(),
-		);
+		self.volume_scene.draw();
 	}
 
 	pub fn render_scene(&self, camera: &Camera) {
