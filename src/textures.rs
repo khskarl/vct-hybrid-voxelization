@@ -7,12 +7,14 @@ use std::mem;
 
 pub struct Texture3D {
 	id: u32,
-	resolution: UVec3,
+	resolution: usize,
 	primitive: GpuPrimitive,
+	translation: glm::Vec3,
+	scaling: glm::Vec3,
 }
 
 impl Texture3D {
-	pub fn new(resolution: UVec3, program: &GLProgram) -> Texture3D {
+	pub fn new(resolution: usize, program: &GLProgram) -> Texture3D {
 		use gl::*;
 
 		let primitive = GpuPrimitive::from_volume([512, 512, 512].into(), &program);
@@ -27,17 +29,17 @@ impl Texture3D {
 			TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
 			TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
 
-			let pixels: Vec<u8> = (0..resolution.x * resolution.y * resolution.z)
-				.map(|i| if (i / resolution.x) % 2 == 0 { 255 } else { 0 })
+			let pixels: Vec<u8> = (0..resolution * resolution * resolution)
+				.map(|i| if (i / resolution) % 2 == 0 { 255 } else { 0 })
 				.collect();
 
 			TexImage3D(
 				TEXTURE_3D,
 				0,
 				gl::RED as i32,
-				resolution.x as i32,
-				resolution.y as i32,
-				resolution.z as i32,
+				resolution as i32,
+				resolution as i32,
+				resolution as i32,
 				0,
 				gl::RED,
 				gl::UNSIGNED_BYTE,
@@ -49,6 +51,8 @@ impl Texture3D {
 			id: handle,
 			resolution,
 			primitive,
+			translation: glm::Vec3::new(0.0, 0.0, 0.0),
+			scaling: glm::Vec3::new(1.0, 1.0, 1.0),
 		}
 	}
 
@@ -72,11 +76,31 @@ impl Texture3D {
 		}
 	}
 
-	pub fn count_cells(&self) -> u32 {
-		self.resolution.x * self.resolution.y * self.resolution.z
+	pub fn count_cells(&self) -> usize {
+		self.resolution * self.resolution * self.resolution
 	}
 
-	pub fn resolution(&self) -> u32 {
-		self.resolution.x
+	pub fn resolution(&self) -> usize {
+		self.resolution
+	}
+
+	pub fn resolution_mut(&mut self) -> &mut usize {
+		&mut self.resolution
+	}
+
+	pub const fn translation(&self) -> &glm::Vec3 {
+		&self.translation
+	}
+
+	pub const fn scaling(&self) -> &glm::Vec3 {
+		&self.scaling
+	}
+
+	pub fn translation_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.translation
+	}
+
+	pub fn scaling_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.scaling
 	}
 }

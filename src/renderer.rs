@@ -11,6 +11,7 @@ use glm::UVec2;
 use nalgebra_glm as glm;
 
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::rc::Rc;
 
 use crate::textures::Texture3D;
@@ -52,9 +53,8 @@ impl Renderer {
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
 
 		// Volume setup
-		let resolution = [64, 64, 64];
 		let volume_view_program = load_voxel_view_program();
-		let volume_scene = Texture3D::new(resolution.into(), &volume_view_program);
+		let volume_scene = Texture3D::new(64, &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -111,17 +111,21 @@ impl Renderer {
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {
-		let proj_view: [f32; 16] = camera.proj_view_raw();
-
 		self.volume_scene.bind();
 		self.volume_view_program.bind();
-		let loc = self.volume_view_program.get_uniform("volume").location();
-		self.volume_scene.set_sampler(0, loc as u32);
+		self.volume_scene.set_sampler(
+			0,
+			self.volume_view_program.get_uniform("volume").location() as u32,
+		);
+
+		let translation = glm::translation(self.volume_scene.translation());
+		let scaling = glm::scaling(self.volume_scene.scaling());
+		let mvp = camera.proj_view() * (translation * scaling);
 
 		self
 			.volume_view_program
 			.get_uniform("mvp")
-			.set_mat4f(&proj_view);
+			.set_mat4f(<&[f32; 16]>::try_from(mvp.as_slice()).unwrap());
 
 		self
 			.volume_view_program
@@ -213,13 +217,17 @@ impl Renderer {
 		&mut self.lights[index]
 	}
 
+	pub fn volume_mut(&mut self) -> &mut Texture3D {
+		&mut self.volume_scene
+	}
+
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {
 		let key = material.name();
 
 		if let Some(material_rc) = self.materials.get(key) {
 			println!("Fetching GPU material '{}'...", key);
 
-			return Rc::clone(material_rc);
+			Rc::clone(material_rc)
 		} else {
 			println!("Loading GPU material '{}'...", key);
 
@@ -228,7 +236,7 @@ impl Renderer {
 				.materials
 				.insert(key.to_owned(), Rc::clone(&material_rc));
 
-			return Rc::clone(&material_rc);
+			Rc::clone(&material_rc)
 		}
 	}
 

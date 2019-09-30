@@ -132,6 +132,20 @@ fn main() {
 								.max(1.0)
 								.build();
 						});
+
+						Window::new(im_str!("Voxels")).build(&ui, || {
+							let volume = renderer.volume_mut();
+							ui.text(im_str!("Voxels:"));
+
+							ui.drag_float3(im_str!("Translation"), volume.translation_mut().as_mut())
+								.min(-100.0)
+								.max(100.0)
+								.build();
+							ui.drag_float3(im_str!("Scale"), volume.scaling_mut().as_mut())
+								.min(-100.0)
+								.max(100.0)
+								.build();
+						});
 					}
 
 					renderer.render(&camera);
