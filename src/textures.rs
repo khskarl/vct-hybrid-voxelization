@@ -17,7 +17,10 @@ impl Texture3D {
 	pub fn new(resolution: usize, program: &GLProgram) -> Texture3D {
 		use gl::*;
 
-		let primitive = GpuPrimitive::from_volume([512, 512, 512].into(), &program);
+		let primitive = GpuPrimitive::from_volume(
+			[resolution as u32, resolution as u32, resolution as u32].into(),
+			&program,
+		);
 
 		let mut handle = 0;
 		unsafe {
@@ -29,21 +32,28 @@ impl Texture3D {
 			TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
 			TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
 
-			let pixels: Vec<u8> = (0..resolution * resolution * resolution)
-				.map(|i| if (i / resolution) % 2 == 0 { 255 } else { 0 })
-				.collect();
+			let mut pixels = Vec::<[u8; 4]>::new();
+			for i in 0..resolution * resolution * resolution {
+				let r = i % 155 + 100;
+				let g = (i + 10) % 155 + 100;
+				let b = (i + 20) % 155 + 100;
+				let a = if (i % 5) == 0 { 255 } else { 0 };
+				pixels.push([r as u8, g as u8, b as u8, a as u8]);
+			}
+
+			let raw_pixels: Vec<&u8> = pixels.iter().flatten().collect();
 
 			TexImage3D(
 				TEXTURE_3D,
 				0,
-				gl::RED as i32,
+				gl::RGBA as i32,
 				resolution as i32,
 				resolution as i32,
 				resolution as i32,
 				0,
-				gl::RED,
+				gl::RGBA,
 				gl::UNSIGNED_BYTE,
-				mem::transmute(pixels[..].as_ptr()),
+				mem::transmute(raw_pixels[..].as_ptr()),
 			);
 		}
 

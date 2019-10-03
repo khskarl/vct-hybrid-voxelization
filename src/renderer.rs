@@ -54,7 +54,7 @@ impl Renderer {
 
 		// Volume setup
 		let volume_view_program = load_voxel_view_program();
-		let volume_scene = Texture3D::new(64, &volume_view_program);
+		let volume_scene = Texture3D::new(256, &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
