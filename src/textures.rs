@@ -51,8 +51,8 @@ impl Texture3D {
 			id: handle,
 			resolution,
 			primitive,
-			translation: glm::Vec3::new(0.0, 0.0, 0.0),
-			scaling: glm::Vec3::new(1.0, 1.0, 1.0),
+			translation: glm::Vec3::new(-12.15, -0.4, -6.5),
+			scaling: glm::Vec3::new(11.5, 6.0, 6.0),
 		}
 	}
 
