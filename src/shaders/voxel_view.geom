@@ -9,7 +9,7 @@ in VSOUT{
 	vec4 color;
 } v_in[];
 
-out vec4 v_color;
+out vec3 v_color;
 out vec3 vw_position;
 
 uniform sampler3D volume;
@@ -19,14 +19,14 @@ uniform int resolution;
 layout (points) in;
 layout(triangle_strip, max_vertices = 12) out;
 void main() {
-	float voxel_size = (1.0 / float(resolution)) * 0.2;
+	float voxel_size = (1.0 / float(resolution)) * 0.25;
 
-	v_color = v_in[0].color;
+	v_color = v_in[0].color.rgb;
 	vw_position = v_in[0].w_position;
 
 	vec4 center = v_in[0].position;
 
-	if(v_color.a < 0.01)
+	if(v_in[0].color.a < 0.001)
 		return;
 
 	vec4 dx = mvp[0] * voxel_size;
@@ -83,5 +83,4 @@ void main() {
 
 	gl_Position = p7;
 	EmitVertex();
-
 }

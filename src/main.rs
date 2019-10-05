@@ -41,7 +41,7 @@ fn main() {
 	let mut platform = WinitPlatform::init(&mut imgui);
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
 	let mut imgui_state = ImGuiState {
-		resolution_index: 2,
+		resolution_index: 0,
 	};
 
 	// Renderer setup

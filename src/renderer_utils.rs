@@ -32,6 +32,14 @@ pub fn load_voxel_view_program() -> GLProgram {
 	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
 }
 
+pub fn load_voxelize_program() -> GLProgram {
+	let vs_src = fs::read_to_string("src/shaders/voxelize.vert").expect(VERTEX_EXPECT);
+	let gs_src = fs::read_to_string("src/shaders/voxelize.geom").expect(GEOMETRY_EXPECT);
+	let fs_src = fs::read_to_string("src/shaders/voxelize.frag").expect(FRAGMENT_EXPECT);
+
+	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
+}
+
 //////////////////////
 // MATERIAL HELPERS //
 pub fn load_texture(texture: &Texture) -> GLTexture {

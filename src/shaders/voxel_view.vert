@@ -21,7 +21,8 @@ void main() {
 
 	ivec3 texel_position = ivec3(i, j, k) + ivec3(aPosition);
 	vec4 color = texelFetch(volume, texel_position, 0);
-
+	// color.xyz += vec3((1.0 * gl_VertexID) / (resolution * resolution * resolution) * 1.0);
+	// color.a = 1.0;
 	gl_Position = mvp * vec4(texel_position * voxel_size + vec3(voxel_size / 2.0), 1.0);
 
 	v_out.position = gl_Position;

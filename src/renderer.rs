@@ -12,9 +12,10 @@ use nalgebra_glm as glm;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::ffi::CString;
 use std::rc::Rc;
 
-use crate::textures::Texture3D;
+use crate::textures::Volume;
 
 pub enum RenderingMode {
 	Volume,
@@ -32,7 +33,8 @@ pub struct Renderer {
 	depth_map_framebuffer: GLFramebuffer,
 	depth_program: GLProgram,
 	volume_view_program: GLProgram,
-	volume_scene: Texture3D,
+	volume_scene: Volume,
+	voxelize_program: GLProgram,
 }
 
 impl Renderer {
@@ -46,6 +48,7 @@ impl Renderer {
 
 		unsafe {
 			gl::Enable(gl::PROGRAM_POINT_SIZE);
+			gl::Enable(gl::TEXTURE_3D);
 			gl::FrontFace(gl::CW);
 		}
 
@@ -54,7 +57,7 @@ impl Renderer {
 
 		// Volume setup
 		let volume_view_program = load_voxel_view_program();
-		let volume_scene = Texture3D::new(256, &volume_view_program);
+		let volume_scene = Volume::new(16, &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -68,6 +71,7 @@ impl Renderer {
 			depth_program: load_depth_program(),
 			volume_view_program,
 			volume_scene,
+			voxelize_program: load_voxelize_program(),
 		}
 	}
 
@@ -97,11 +101,57 @@ impl Renderer {
 		self.depth_map_framebuffer.unbind();
 	}
 
+	fn voxelize(&self) {
+		gl_set_depth_write(false);
+		gl_set_cull_face(CullFace::None);
+		gl_set_viewport(
+			0,
+			0,
+			self.volume_scene.resolution(),
+			self.volume_scene.resolution(),
+		);
+		gl_clear(false, false, false);
+
+		self.voxelize_program.bind();
+		unsafe {
+			gl::ActiveTexture(0);
+			gl::BindImageTexture(
+				0,
+				self.volume_scene.diffuse_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+		}
+
+		self.volume_scene.draw();
+		// for primitive in &self.primitives {
+		// 	primitive.bind();
+
+		// 	gl_draw_elements(
+		// 		DrawMode::Triangles,
+		// 		primitive.count_vertices(),
+		// 		IndexKind::UnsignedInt,
+		// 		0,
+		// 	);
+		// }
+
+		unsafe {
+			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+		}
+	}
+
 	pub fn render(&self, camera: &Camera) {
+		self.voxelize();
+
 		self.render_to_shadow_map();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
 		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
+		gl_set_depth_write(true);
 		gl_clear(true, true, true);
 
 		gl_set_cull_face(CullFace::None);
@@ -111,13 +161,14 @@ impl Renderer {
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {
-		self.volume_scene.bind();
 		self.volume_view_program.bind();
 		self.volume_scene.set_sampler(
 			0,
 			self.volume_view_program.get_uniform("volume").location() as u32,
 		);
-
+		unsafe {
+			gl::BindTexture(gl::TEXTURE_3D, self.volume_scene.diffuse_id());
+		}
 		let translation = glm::translation(self.volume_scene.translation());
 		let scaling = glm::scaling(self.volume_scene.scaling());
 		let mvp = camera.proj_view() * (translation * scaling);
@@ -217,7 +268,7 @@ impl Renderer {
 		&mut self.lights[index]
 	}
 
-	pub fn volume_mut(&mut self) -> &mut Texture3D {
+	pub fn volume_mut(&mut self) -> &mut Volume {
 		&mut self.volume_scene
 	}
 
@@ -255,14 +306,14 @@ impl Renderer {
 		if let Some(texture_rc) = self.textures.get(key) {
 			println!("Fetching GPU texture '{}'...", key);
 
-			return Rc::clone(texture_rc);
+			Rc::clone(texture_rc)
 		} else {
 			println!("Loading GPU texture '{}'...", key);
 
 			let texture_rc = Rc::new(load_texture(texture));
 			self.textures.insert(key.to_owned(), Rc::clone(&texture_rc));
 
-			return Rc::clone(&texture_rc);
+			Rc::clone(&texture_rc)
 		}
 	}
 }
