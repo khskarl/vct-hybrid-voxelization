@@ -18,10 +18,7 @@ impl Camera {
 	}
 
 	pub fn projection(&self) -> glm::Mat4 {
-		let mut proj = glm::perspective_rh(16.0 / 9.0, f32::to_radians(80.0), 0.01, 1000.0);
-		proj[(0, 0)] *= -1.0;
-		// proj[(1, 1)] *= -1.0;
-		proj
+		glm::perspective_rh_zo(16.0 / 9.0, f32::to_radians(80.0), 0.01, 600.0)
 	}
 
 	pub fn view(&self) -> glm::Mat4 {

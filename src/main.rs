@@ -246,10 +246,10 @@ fn update_camera(camera: &mut Camera, dt: f32, key_states: &KeyStates) {
 
 	use glutin::event::ElementState::Pressed;
 	if key_states.A == Pressed {
-		camera.move_right(-move_rate * dt)
+		camera.move_right(move_rate * dt)
 	}
 	if key_states.D == Pressed {
-		camera.move_right(move_rate * dt)
+		camera.move_right(-move_rate * dt)
 	}
 	if key_states.S == Pressed {
 		camera.move_forward(-move_rate * dt)
@@ -259,10 +259,10 @@ fn update_camera(camera: &mut Camera, dt: f32, key_states: &KeyStates) {
 	}
 
 	if key_states.J == Pressed {
-		camera.rotate_right(-rotation_rate * dt)
+		camera.rotate_right(rotation_rate * dt)
 	}
 	if key_states.L == Pressed {
-		camera.rotate_right(rotation_rate * dt)
+		camera.rotate_right(-rotation_rate * dt)
 	}
 	if key_states.K == Pressed {
 		camera.rotate_up(-rotation_rate * dt)

@@ -51,7 +51,7 @@ impl Renderer {
 		unsafe {
 			gl::Enable(gl::PROGRAM_POINT_SIZE);
 			gl::Enable(gl::TEXTURE_3D);
-			gl::FrontFace(gl::CW);
+			gl::FrontFace(gl::CCW);
 		}
 
 		let depth_map = load_depth_texture();
@@ -172,7 +172,6 @@ impl Renderer {
 			0.0,
 			half_depth as f32,
 		);
-		proj[(0, 0)] *= -1.0;
 
 		let view = glm::look_at_rh(
 			&self.volume_scene.translation(),
