@@ -160,7 +160,7 @@ impl Renderer {
 		self.render_to_shadow_map();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
-		gl_set_clear_color(&[0.1, 0.1, 0.1, 1.0]);
+		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
 		gl_set_depth_write(true);
 		gl_clear(true, true, true);
 

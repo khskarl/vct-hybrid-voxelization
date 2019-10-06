@@ -21,8 +21,8 @@ uniform sampler2D shadow_map;
 
 in vec3 vw_position;
 in vec2 v_uv;
-in vec3 v_normal;
 in vec4 vl_position;
+in mat3 v_TBN;
 
 out vec4 out_color;
 
@@ -43,22 +43,6 @@ float calculate_shadow(vec4 l_pos) {
 	}
 
 	return shadow /= 9.0;
-}
-
-vec3 get_normal_from_map(vec3 f_normal) {
-	vec3 tangentNormal = f_normal * 2.0 - 1.0;
-
-	vec3 Q1  = dFdx(vw_position.xyz);
-	vec3 Q2  = dFdy(vw_position.xyz);
-	vec2 st1 = dFdx(v_uv);
-	vec2 st2 = dFdy(v_uv);
-
-	vec3 N   = normalize(v_normal);
-	vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-	vec3 B  = -normalize(cross(N, T));
-	mat3 TBN = mat3(T, B, N);
-
-	return normalize(TBN * tangentNormal);
 }
 
 float distribution_ggx(vec3 N, vec3 H, float a) {
@@ -121,7 +105,9 @@ void main() {
 	vec3 albedo = texture(albedo_map, uv).xyz;
 	float roughness = texture(metaghness_map, uv).g;
 	float metalness = texture(metaghness_map, uv).b;
-	vec3 normal = get_normal_from_map(texture(normal_map, uv).rgb);
+	vec3 normal = texture(normal_map, uv).rgb;
+	normal = normalize(normal * 2.0 - 1.0);
+	normal = normalize(v_TBN * normal);
 	float occlusion = texture(occlusion_map, uv).r;
 
 	vec3 V = normalize(camera_position - vw_position.xyz);
@@ -167,7 +153,7 @@ void main() {
 		direct += radiance / attenuation;
 	}
 	vec3 ambient = albedo * vec3(0.2, 0.15, 0.1) * occlusion;
-	// float NdotL = max(dot(v_normal, -light_direction[0]), 0.0);
-	vec3 color = direct + ambient;
+	float NdotL = max(dot(normal, -light_direction[0]), 0.0);
+	vec3 color = (direct + ambient);
 	out_color = vec4(color, 1.0);
 }

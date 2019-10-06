@@ -69,20 +69,36 @@ impl GpuPrimitive {
 			buffer.push(normal[2]);
 		}
 
+		for tangent in &primitive.tangents {
+			buffer.push(tangent[0]);
+			buffer.push(tangent[1]);
+			buffer.push(tangent[2]);
+		}
+
 		let vertex_buffer = GLBuffer::new(BufferTarget::Array, 0, Usage::StaticDraw, &buffer);
 
 		let mut vertex_array = GLVertexArray::new();
 		vertex_array.bind();
+
+		let positions_size = primitive.positions.len() * 3;
+		let tex_coords_size = primitive.tex_coords.len() * 2;
+		let normals_size = primitive.normals.len() * 3;
+
 		vertex_array.add_attribute(&vertex_buffer, program.get_attribute("aPosition"), 0);
 		vertex_array.add_attribute(
 			&vertex_buffer,
 			program.get_attribute("aTexCoord"),
-			primitive.positions.len() * 3,
+			positions_size,
 		);
 		vertex_array.add_attribute(
 			&vertex_buffer,
 			program.get_attribute("aNormal"),
-			primitive.positions.len() * 3 + primitive.tex_coords.len() * 2,
+			positions_size + tex_coords_size,
+		);
+		vertex_array.add_attribute(
+			&vertex_buffer,
+			program.get_attribute("aTangent"),
+			positions_size + tex_coords_size + normals_size,
 		);
 
 		let index_buffer = GLBuffer::new(

@@ -57,6 +57,7 @@ pub struct Primitive {
 	pub positions: Vec<[f32; 3]>,
 	pub tex_coords: Vec<[f32; 2]>,
 	pub normals: Vec<[f32; 3]>,
+	pub tangents: Vec<[f32; 3]>,
 	pub indices: Vec<u32>,
 	pub material: Rc<Material>,
 }
@@ -70,6 +71,7 @@ impl Primitive {
 		let mut positions = Vec::<[f32; 3]>::new();
 		let mut tex_coords = Vec::<[f32; 2]>::new();
 		let mut normals = Vec::<[f32; 3]>::new();
+		let mut tangents = Vec::<[f32; 3]>::new();
 		let mut indices = Vec::<u32>::new();
 
 		let reader = gltf_primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -92,6 +94,16 @@ impl Primitive {
 			}
 		}
 
+		if let Some(iter) = reader.read_tangents() {
+			for tangent in iter {
+				if tangent[3] > 0.0 {
+					tangents.push([-tangent[0], -tangent[1], -tangent[2]]);
+				} else {
+					tangents.push([tangent[0], tangent[1], tangent[2]]);
+				}
+			}
+		}
+
 		if let Some(iter) = reader.read_indices() {
 			for index in iter.into_u32() {
 				indices.push(index);
@@ -106,6 +118,7 @@ impl Primitive {
 			positions,
 			tex_coords,
 			normals,
+			tangents,
 			indices,
 			material,
 		}
