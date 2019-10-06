@@ -91,10 +91,10 @@ impl Renderer {
 		for primitive in &self.primitives {
 			primitive.bind();
 
-			// self
-			// 	.depth_program
-			// 	.get_uniform("model")
-			// 	.set_mat4f(&primitive.model_matrix_raw());
+			self
+				.depth_program
+				.get_uniform("model")
+				.set_mat4f(&primitive.model_matrix_raw());
 
 			gl_draw_elements(
 				DrawMode::Triangles,
@@ -115,14 +115,36 @@ impl Renderer {
 		gl_set_depth_write(false);
 		gl_set_cull_face(CullFace::None);
 		gl_set_viewport(0, 0, width as usize, height as usize);
-		gl_clear(false, false, false);
+		gl_clear(true, true, false);
+		unsafe { gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE) };
 
-		self.voxelize_program.bind();
-		self.voxelize_program.bind();
 		self.voxelize_program.bind();
 		self.voxelize_program.get_uniform("u_width").set_1i(width);
 		self.voxelize_program.get_uniform("u_height").set_1i(height);
 		self.voxelize_program.get_uniform("u_depth").set_1i(depth);
+
+		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
+		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
+		let half_depth = self.volume_scene.scaling().z;
+		let proj = glm::ortho_rh_zo(
+			-half_width,
+			half_width,
+			-half_height,
+			half_height,
+			0.0,
+			half_depth as f32,
+		);
+		let view = glm::look_at_rh(
+			&self.volume_scene.translation(),
+			&(self.volume_scene.translation() + glm::vec3(0.0, 0.0, 1.0)),
+			&[0.0, 1.0, 0.0].into(),
+		);
+		let pv: [f32; 16] = {
+			let proj_view = proj * view;
+			let transmute_me: [[f32; 4]; 4] = proj_view.into();
+			unsafe { std::mem::transmute(transmute_me) }
+		};
+		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
 		unsafe {
 			gl::BindImageTexture(
@@ -136,21 +158,26 @@ impl Renderer {
 			);
 		}
 
-		self.volume_scene.draw();
-		// for primitive in &self.primitives {
-		// 	primitive.bind();
+		for primitive in &self.primitives {
+			primitive.bind();
 
-		// 	gl_draw_elements(
-		// 		DrawMode::Triangles,
-		// 		primitive.count_vertices(),
-		// 		IndexKind::UnsignedInt,
-		// 		0,
-		// 	);
-		// }
+			self
+				.voxelize_program
+				.get_uniform("model")
+				.set_mat4f(&primitive.model_matrix_raw());
+
+			gl_draw_elements(
+				DrawMode::Triangles,
+				primitive.count_vertices(),
+				IndexKind::UnsignedInt,
+				0,
+			);
+		}
 
 		unsafe {
+			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
-			gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+			// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 		}
 	}
 

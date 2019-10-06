@@ -35,12 +35,7 @@ impl Volume {
 
 			let mut pixels = Vec::<[u8; 4]>::new();
 			for i in 0..resolution * resolution * resolution {
-				// let r = i % 155 + 100;
-				// let g = (i + 10) % 155 + 100;
-				// let b = (i + 20) % 155 + 100;
-				// let a = if (i % 5) == 0 { 255 } else { 0 };
-
-				let (r, g, b, a) = (255, 128, 1, 255);
+				let (r, g, b, a) = (0, 0, 0, 0);
 				pixels.push([r as u8, g as u8, b as u8, a as u8]);
 			}
 

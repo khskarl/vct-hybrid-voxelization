@@ -56,22 +56,22 @@ fn main() {
 		let mut resources = Resources::new();
 		renderer.submit_mesh(&Mesh::new(
 			"assets/models/sphere.glb",
-			vec3(0.0, 2.5, 0.0),
+			vec3(2.0, 2.5, 2.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
 		));
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/debug_plane.glb",
-		// 	vec3(0.0, 0.0, 0.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
 		renderer.submit_mesh(&Mesh::new(
-			"assets/models/sponza.glb",
+			"assets/models/debug_plane.glb",
 			vec3(0.0, 0.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
 		));
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/sponza.glb",
+		// 	vec3(0.0, 0.0, 0.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
 	}
 
 	let mut key_states = KeyStates::new();
