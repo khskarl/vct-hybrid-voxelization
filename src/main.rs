@@ -20,7 +20,7 @@ struct ImGuiState {
 }
 
 fn main() {
-	const WINDOW_TITLE: &str = "Lunar Renderer 🐶";
+	const WINDOW_TITLE: &str = "Yagibuu Renderer 👻";
 	let (width, height) = (1280, 720);
 
 	let logical_size = glutin::dpi::LogicalSize::from((width, height));
@@ -52,10 +52,26 @@ fn main() {
 
 	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
 	{
+		use glm::*;
 		let mut resources = Resources::new();
-		renderer.submit_mesh(&Mesh::new("assets/models/sphere.glb", &mut resources));
-		renderer.submit_mesh(&Mesh::new("assets/models/debug_plane.glb", &mut resources));
-		// renderer.submit_mesh(&Mesh::new("assets/models/sponza.glb", &mut resources));
+		renderer.submit_mesh(&Mesh::new(
+			"assets/models/sphere.glb",
+			vec3(0.0, 2.5, 0.0),
+			vec3(1.0, 1.0, 1.0),
+			&mut resources,
+		));
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/debug_plane.glb",
+		// 	vec3(0.0, 0.0, 0.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
+		renderer.submit_mesh(&Mesh::new(
+			"assets/models/sponza.glb",
+			vec3(0.0, 0.0, 0.0),
+			vec3(1.0, 1.0, 1.0),
+			&mut resources,
+		));
 	}
 
 	let mut key_states = KeyStates::new();

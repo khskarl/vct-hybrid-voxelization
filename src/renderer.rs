@@ -77,6 +77,7 @@ impl Renderer {
 
 	fn render_to_shadow_map(&self) {
 		gl_set_cull_face(CullFace::Front);
+		gl_set_depth_write(true);
 		gl_set_viewport(0, 0, self.depth_map.width(), self.depth_map.height());
 		self.depth_map_framebuffer.bind();
 		gl_clear(false, true, false);
@@ -90,6 +91,11 @@ impl Renderer {
 		for primitive in &self.primitives {
 			primitive.bind();
 
+			// self
+			// 	.depth_program
+			// 	.get_uniform("model")
+			// 	.set_mat4f(&primitive.model_matrix_raw());
+
 			gl_draw_elements(
 				DrawMode::Triangles,
 				primitive.count_vertices(),
@@ -102,19 +108,23 @@ impl Renderer {
 	}
 
 	fn voxelize(&self) {
+		let width = self.volume_scene.resolution() as i32;
+		let height = self.volume_scene.resolution() as i32;
+		let depth = self.volume_scene.resolution() as i32;
+
 		gl_set_depth_write(false);
 		gl_set_cull_face(CullFace::None);
-		gl_set_viewport(
-			0,
-			0,
-			self.volume_scene.resolution(),
-			self.volume_scene.resolution(),
-		);
+		gl_set_viewport(0, 0, width as usize, height as usize);
 		gl_clear(false, false, false);
 
 		self.voxelize_program.bind();
+		self.voxelize_program.bind();
+		self.voxelize_program.bind();
+		self.voxelize_program.get_uniform("u_width").set_1i(width);
+		self.voxelize_program.get_uniform("u_height").set_1i(height);
+		self.voxelize_program.get_uniform("u_depth").set_1i(depth);
+
 		unsafe {
-			gl::ActiveTexture(0);
 			gl::BindImageTexture(
 				0,
 				self.volume_scene.diffuse_id(),
@@ -225,6 +235,11 @@ impl Renderer {
 		for primitive in &self.primitives {
 			primitive.bind();
 
+			self
+				.pbr_program
+				.get_uniform("model")
+				.set_mat4f(&primitive.model_matrix_raw());
+
 			let mat = &primitive.material();
 			self
 				.pbr_program
@@ -259,7 +274,13 @@ impl Renderer {
 	pub fn submit_mesh(&mut self, mesh: &Mesh) {
 		for primitive in mesh.primitives() {
 			let material = self.fetch_material(&primitive.material);
-			let gpu_primitive = GpuPrimitive::new(&primitive, &self.pbr_program, material);
+			let gpu_primitive = GpuPrimitive::new(
+				&primitive,
+				&self.pbr_program,
+				material,
+				mesh.position,
+				mesh.scale,
+			);
 			self.primitives.push(gpu_primitive);
 		}
 	}

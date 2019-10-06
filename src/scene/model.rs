@@ -1,6 +1,6 @@
 use crate::scene::material::{Material, MaterialBuilder, Texture};
 use image::ImageFormat::{JPEG, PNG};
-
+use nalgebra_glm as glm;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -23,10 +23,12 @@ impl Resources {
 
 pub struct Mesh {
 	primitives: Vec<Primitive>,
+	pub position: glm::Vec3,
+	pub scale: glm::Vec3,
 }
 
 impl Mesh {
-	pub fn new(path: &str, resources: &mut Resources) -> Mesh {
+	pub fn new(path: &str, position: glm::Vec3, scale: glm::Vec3, resources: &mut Resources) -> Mesh {
 		let gltf_document = gltf::import(path);
 		let (gltf, buffers, _) = gltf_document.unwrap();
 
@@ -39,7 +41,11 @@ impl Mesh {
 			}
 		}
 
-		Mesh { primitives }
+		Mesh {
+			primitives,
+			position,
+			scale,
+		}
 	}
 
 	pub fn primitives(&self) -> &Vec<Primitive> {
@@ -147,7 +153,7 @@ fn fetch_gltf_material(
 
 	if let Some(material_rc) = resources.materials.get(&key) {
 		println!("Fetching material '{}'...", key);
-		return Rc::clone(material_rc);
+		Rc::clone(material_rc)
 	} else {
 		println!("Loading material '{}'...", key);
 
@@ -156,7 +162,7 @@ fn fetch_gltf_material(
 			.materials
 			.insert(key.to_owned(), Rc::clone(&material_rc));
 
-		return Rc::clone(&material_rc);
+		Rc::clone(&material_rc)
 	}
 }
 
@@ -222,7 +228,7 @@ fn fetch_gltf_texture(
 	let texture_rc = Rc::new(texture);
 	resources.textures.insert(key, Rc::clone(&texture_rc));
 
-	return Rc::clone(&texture_rc);
+	Rc::clone(&texture_rc)
 }
 
 fn load_gltf_texture(buffers: &Vec<gltf::buffer::Data>, texture: gltf::Texture<'_>) -> Texture {

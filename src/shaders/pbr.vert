@@ -2,6 +2,7 @@
 
 uniform mat4 pv;
 uniform mat4 light_matrix;
+uniform mat4 model;
 
 layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec2 aTexCoord;
@@ -13,10 +14,11 @@ out vec3 v_normal;
 out vec4 vl_position;
 
 void main() {
-	vw_position = aPosition;
-	vl_position = light_matrix * vec4(vw_position, 1.0);
+	vec3 w_position = vec3(model * vec4(aPosition, 1.0));
+	vw_position = w_position;
+	vl_position = light_matrix * vec4(w_position, 1.0);
 	v_uv = aTexCoord;
-	v_normal = aNormal;
+	v_normal = transpose(inverse(mat3(model))) * aNormal;
 
-	gl_Position = (pv) * vec4(aPosition, 1.0);
+	gl_Position = pv * model * vec4(aPosition, 1.0);
 }

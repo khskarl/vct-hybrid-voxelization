@@ -1,26 +1,26 @@
-# LunaR - Luna Renderer
-LunaR is an experimental high performance deferred PBR renderer written in Rust and built on top of Rendy (and gfx-hal!).
+# YAGIBUU - Yet Another Global Illumination But Ultimately Ugly
+YAGIBUU is an overly bootstrapped PBR renderer with a Voxel Cone Tracing implementation stuck inside of it, on in other words: held hostage by the dark powers of deadlines and ad-hoc improvised solutions.
+
+This project is my thesis implementation, whose sole purpose is to compare two voxelization algorithms for achieving real-time GI through Cone Tracing.
+Initially this project was using Rendy for the rendering, but a combination of unforeseen life events and mismanagement led to a major rewrite and an even shorter deadline.
+
+This project was completely rewritten in a monstrous combination of raw OpenGL and a random helper crate which lacked needed features. Intuitively the code is a mess, an even uglier mess than the overly appropriate project's name.
 
 ```
-"Surprisingly, this repo wasn't a renderer written in R lang."
-                                                     - A lost R programmer.
+"This is the ugliest thing I have ever seen."
+                                                     - Yesterday's ugliest entity.
 ```
 
 ## Planned Features
-- [ ] Directional + Spot + Point Light
-- [ ] Multi-Scattering BSDF
-- [ ] IBL
-- [ ] Voxel Cone Tracing GI
-- [ ] Tone Mapping
-- [ ] Area Lights
-- [ ] Deferred Adaptive Compute Shading
-- [ ] Cascaded Shadow Mapping
-- [ ] Procedural Default Materials in compilation time (external crate)
+- [ ] Voxelization by Crassin & Green
+- [ ] Voxelization by Rauwendaal
+- [ ] Diffuse GI!
+- [x] Major changes in the last second
+- [x] Tears
+- [x] Suffering
+- [x] Is this hope??
+- [ ] Joy!
 
 ## Hopefully-one-day Features
-- [ ] SSAO
-- [ ] [Sparse Radiance Probes](https://youtu.be/YTSlMwh-79M)
-- [ ] VR
-- [ ] [Dynamic Diffuse GI](https://morgan3d.github.io/articles/2019-04-01-ddgi/)
-- [ ] [Screen Space GI](https://www.in.tu-clausthal.de/fileadmin/homes/CG/data_pub/paper/SSDO_i3D09.pdf)
-- [ ] [Deep Screen Space GI](https://pdfs.semanticscholar.org/ffa0/198a99b6b7b4a903ab6a1fad470ff180944e.pdf)
+- [ ] Throw it all away
+- [ ] Rewrite it all in Vulkan and with a more reasonable deadline

@@ -45,12 +45,11 @@ float calculate_shadow(vec4 l_pos) {
 	return shadow /= 9.0;
 }
 
-
 vec3 get_normal_from_map(vec3 f_normal) {
 	vec3 tangentNormal = f_normal * 2.0 - 1.0;
 
-	vec3 Q1  = dFdx(vw_position);
-	vec3 Q2  = dFdy(vw_position);
+	vec3 Q1  = dFdx(vw_position.xyz);
+	vec3 Q2  = dFdy(vw_position.xyz);
 	vec2 st1 = dFdx(v_uv);
 	vec2 st2 = dFdy(v_uv);
 
@@ -71,16 +70,14 @@ float distribution_ggx(vec3 N, vec3 H, float a) {
 	return a2 / denom;
 }
 
-float GeometrySchlickGGX(float NdotV, float k)
-{
+float GeometrySchlickGGX(float NdotV, float k) {
 	float nom   = NdotV;
 	float denom = NdotV * (1.0 - k) + k;
 
 	return nom / denom;
 }
 
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float k)
-{
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
 	float ggx1 = GeometrySchlickGGX(NdotV, k);
@@ -127,7 +124,7 @@ void main() {
 	vec3 normal = get_normal_from_map(texture(normal_map, uv).rgb);
 	float occlusion = texture(occlusion_map, uv).r;
 
-	vec3 V = normalize(camera_position - vw_position);
+	vec3 V = normalize(camera_position - vw_position.xyz);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metalness);
@@ -151,7 +148,7 @@ void main() {
 		direct += radiance * (1.0 - shadow);
 	}
 	for(int i = 1; i < num_lights; i++) {
-		vec3 Li = vw_position - light_position[i];
+		vec3 Li = vw_position.xyz - light_position[i];
 		float dist = length(Li);
 		float attenuation = 0.1 * dist * dist;
 

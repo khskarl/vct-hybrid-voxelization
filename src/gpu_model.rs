@@ -6,10 +6,12 @@ use std::rc::Rc;
 
 pub struct GpuPrimitive {
 	vertex_array: GLVertexArray,
-	vertex_buffer: GLBuffer,
-	index_buffer: Option<GLBuffer>,
+	_vertex_buffer: GLBuffer,
+	_index_buffer: Option<GLBuffer>,
 	count_vertices: usize,
 	material: Option<Rc<GpuMaterial>>,
+	position: glm::Vec3,
+	scale: glm::Vec3,
 }
 
 impl GpuPrimitive {
@@ -32,10 +34,12 @@ impl GpuPrimitive {
 
 		GpuPrimitive {
 			vertex_array,
-			vertex_buffer,
-			index_buffer: None,
+			_vertex_buffer: vertex_buffer,
+			_index_buffer: None,
 			count_vertices: (width * height * depth) as usize,
 			material: None,
+			position: glm::vec3(0.0, 0.0, 0.0),
+			scale: glm::vec3(1.0, 1.0, 1.0),
 		}
 	}
 
@@ -43,6 +47,8 @@ impl GpuPrimitive {
 		primitive: &Primitive,
 		program: &GLProgram,
 		material: Rc<GpuMaterial>,
+		position: glm::Vec3,
+		scale: glm::Vec3,
 	) -> GpuPrimitive {
 		let mut buffer = Vec::<f32>::new();
 
@@ -90,10 +96,12 @@ impl GpuPrimitive {
 
 		GpuPrimitive {
 			vertex_array,
-			vertex_buffer,
-			index_buffer: Some(index_buffer),
+			_vertex_buffer: vertex_buffer,
+			_index_buffer: Some(index_buffer),
 			count_vertices: primitive.indices.len(),
 			material: Some(material),
+			position,
+			scale,
 		}
 	}
 
@@ -107,6 +115,17 @@ impl GpuPrimitive {
 
 	pub fn material(&self) -> Rc<GpuMaterial> {
 		Rc::clone(&self.material.as_ref().unwrap())
+	}
+
+	pub fn model_matrix(&self) -> glm::Mat4 {
+		let translation = glm::translation(&self.position);
+		let scaling = glm::scaling(&self.scale);
+		(translation * scaling)
+	}
+
+	pub fn model_matrix_raw(&self) -> [f32; 16] {
+		let transmute_me: [[f32; 4]; 4] = self.model_matrix().into();
+		unsafe { std::mem::transmute(transmute_me) }
 	}
 }
 

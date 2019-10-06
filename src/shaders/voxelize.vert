@@ -14,22 +14,37 @@ out VSOUT {
 	vec3 normal;
 } v_out;
 
-uniform layout(rgba8, binding = 0) image3D voxel_color;
+uniform layout(rgba8, binding = 0) image3D u_voxel_diffuse;
+
+uniform int u_width;
+uniform int u_height;
+uniform int u_depth;
 
 void main() {
 	v_out.uv = aTexCoord;
 	v_out.normal = aNormal;
 
-	uint i = gl_VertexID % 16;
-	uint j = (gl_VertexID / 16) % 16;
-	uint k = (gl_VertexID / 16 / 16) % 16;
+	uint i = gl_VertexID % u_width;
+	uint j = (gl_VertexID / u_width) % u_height;
+	uint k = (gl_VertexID / u_width / u_height) % u_depth;
 	ivec3 coordinate = ivec3(i, j, k);
 
 	gl_Position = vec4(coordinate - vec3(0.0, 2.0, 0.0), 1.0);
 
 	v_out.position = coordinate;
-	vec3 color = vec3(coordinate) / 16.0;
+	vec3 color = vec3(coordinate) / u_width;
 	float dist = length(vec3(8.0, 8.0, 8.0) - vec3(coordinate));
 	float alpha = dist < 8.0 ? 1.0 : 0.0;
-	imageStore(voxel_color, coordinate, vec4(color, alpha));
+	imageStore(u_voxel_diffuse, coordinate, vec4(color, alpha));
+
+
+
+  // mat4 model_matrix = primitive_parameters.model_matrix;
+  // mat3 normal_matrix = transpose(inverse(mat3(model_matrix)));
+
+  // vertex_world_position = vec3(model_matrix * vec4(position, 1.0));
+  // v_out. = normalize(normal_matrix * normal);
+  // v_out.uv = aTexCoord;
+
+  // gl_Position = vec4(vertex_world_position, 1.0f);
 }
