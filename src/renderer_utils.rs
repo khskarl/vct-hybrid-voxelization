@@ -47,6 +47,13 @@ pub fn load_bounds_program() -> GLProgram {
 	GLProgram::new(&vs_src[..], &fs_src[..])
 }
 
+pub fn load_clear_program() -> GLProgram {
+	let vs_src = fs::read_to_string("src/shaders/clear_volume.vert").expect(VERTEX_EXPECT);
+	let fs_src = fs::read_to_string("src/shaders/empty.frag").expect(FRAGMENT_EXPECT);
+
+	GLProgram::new(&vs_src[..], &fs_src[..])
+}
+
 //////////////////////
 // MATERIAL HELPERS //
 pub fn load_texture(texture: &Texture) -> GLTexture {

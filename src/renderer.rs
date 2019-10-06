@@ -36,6 +36,7 @@ pub struct Renderer {
 	volume_scene: Volume,
 	voxelize_program: GLProgram,
 	bounds_program: GLProgram,
+	clear_program: GLProgram,
 }
 
 impl Renderer {
@@ -74,6 +75,7 @@ impl Renderer {
 			volume_scene,
 			voxelize_program: load_voxelize_program(),
 			bounds_program: load_bounds_program(),
+			clear_program: load_clear_program(),
 		}
 	}
 
@@ -109,6 +111,23 @@ impl Renderer {
 		self.depth_map_framebuffer.unbind();
 	}
 
+	fn clear_volume(&self) {
+		self.clear_program.bind();
+		self
+			.clear_program
+			.get_uniform("u_width")
+			.set_1i(self.volume_scene.resolution() as i32);
+		self
+			.clear_program
+			.get_uniform("u_height")
+			.set_1i(self.volume_scene.resolution() as i32);
+		self
+			.clear_program
+			.get_uniform("u_depth")
+			.set_1i(self.volume_scene.resolution() as i32);
+		self.volume_scene.draw();
+	}
+
 	fn render_bounds(&self, camera: &Camera) {
 		self.bounds_program.bind();
 
@@ -125,6 +144,8 @@ impl Renderer {
 	}
 
 	fn voxelize(&self) {
+		self.clear_volume();
+
 		let width = self.volume_scene.resolution() as i32;
 		let height = self.volume_scene.resolution() as i32;
 		let depth = self.volume_scene.resolution() as i32;
@@ -143,7 +164,7 @@ impl Renderer {
 		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
 		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
 		let half_depth = self.volume_scene.scaling().z;
-		let proj = glm::ortho_rh_zo(
+		let mut proj = glm::ortho_rh_zo(
 			-half_width,
 			half_width,
 			-half_height,
@@ -151,9 +172,11 @@ impl Renderer {
 			0.0,
 			half_depth as f32,
 		);
+		proj[(0, 0)] *= -1.0;
+
 		let view = glm::look_at_rh(
 			&self.volume_scene.translation(),
-			&(self.volume_scene.translation() + glm::vec3(0.0, 0.0, 1.0)),
+			&(self.volume_scene.translation() + glm::vec3(1.0, 0.0, 0.0)),
 			&[0.0, 1.0, 0.0].into(),
 		);
 		let pv: [f32; 16] = {
