@@ -28,5 +28,8 @@ void main() {
 	gl_Position = vec4(coordinate - vec3(0.0, 2.0, 0.0), 1.0);
 
 	v_out.position = coordinate;
-	imageStore(voxel_color, coordinate, vec4(0.0, 1.0, 1.0, 1.0));
+	vec3 color = vec3(coordinate) / 16.0;
+	float dist = length(vec3(8.0, 8.0, 8.0) - vec3(coordinate));
+	float alpha = dist < 8.0 ? 1.0 : 0.0;
+	imageStore(voxel_color, coordinate, vec4(color, alpha));
 }
