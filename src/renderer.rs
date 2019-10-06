@@ -35,6 +35,7 @@ pub struct Renderer {
 	volume_view_program: GLProgram,
 	volume_scene: Volume,
 	voxelize_program: GLProgram,
+	bounds_program: GLProgram,
 }
 
 impl Renderer {
@@ -72,6 +73,7 @@ impl Renderer {
 			volume_view_program,
 			volume_scene,
 			voxelize_program: load_voxelize_program(),
+			bounds_program: load_bounds_program(),
 		}
 	}
 
@@ -105,6 +107,21 @@ impl Renderer {
 		}
 
 		self.depth_map_framebuffer.unbind();
+	}
+
+	fn render_bounds(&self, camera: &Camera) {
+		self.bounds_program.bind();
+
+		let translation = glm::translation(self.volume_scene.translation());
+		let scaling = glm::scaling(self.volume_scene.scaling());
+		let mvp = camera.proj_view() * (translation * scaling);
+
+		self
+			.volume_view_program
+			.get_uniform("mvp")
+			.set_mat4f(<&[f32; 16]>::try_from(mvp.as_slice()).unwrap());
+
+		gl_draw_arrays(DrawMode::Lines, 0, 24);
 	}
 
 	fn voxelize(&self) {
@@ -195,6 +212,7 @@ impl Renderer {
 		self.render_voxels(camera);
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
+		self.render_bounds(camera);
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {
