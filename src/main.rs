@@ -54,18 +54,24 @@ fn main() {
 	{
 		use glm::*;
 		let mut resources = Resources::new();
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/cube.glb",
+		// 	vec3(0.0, 0.0, 0.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
 		renderer.submit_mesh(&Mesh::new(
 			"assets/models/sphere.glb",
-			vec3(2.0, 2.5, 2.0),
-			vec3(1.0, 1.0, 1.0),
-			&mut resources,
-		));
-		renderer.submit_mesh(&Mesh::new(
-			"assets/models/debug_plane.glb",
 			vec3(0.0, 0.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
 		));
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/debug_plane.glb",
+		// 	vec3(0.0, 0.0, 0.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
 		// renderer.submit_mesh(&Mesh::new(
 		// 	"assets/models/sponza.glb",
 		// 	vec3(0.0, 0.0, 0.0),
@@ -78,6 +84,7 @@ fn main() {
 
 	let target_dt = 0.016_666_668;
 	let mut dt = target_dt;
+	let initial_time = Instant::now();
 	let mut start_frame_time = Instant::now();
 
 	event_loop.run(move |event, _, control_flow| {
@@ -171,11 +178,26 @@ fn main() {
 								.build();
 
 							let index = &mut imgui_state.resolution_index;
-							let items = [16, 32, 64, 128, 256];
+							let items = [64, 128, 256];
 							ComboBox::new(im_str!("Resolution")).build_simple(&ui, index, &items, &|x| {
 								Cow::from(im_str!("{}x{}x{}", x, x, x))
 							});
 							*volume.resolution_mut() = items[*index];
+						});
+
+						Window::new(im_str!("Transforms")).build(&ui, || {
+							let primitives = renderer.primitives_mut();
+							// ui.text(im_str!("Voxels:"));
+							for primitive in primitives {
+								ui.drag_float3(im_str!("Translation"), primitive.translation_mut().as_mut())
+									.min(-100.0)
+									.max(100.0)
+									.build();
+								ui.drag_float3(im_str!("Scale"), primitive.scaling_mut().as_mut())
+									.min(-100.0)
+									.max(100.0)
+									.build();
+							}
 						});
 					}
 
@@ -188,7 +210,10 @@ fn main() {
 			},
 			Event::EventsCleared => {
 				update_camera(&mut camera, dt, &key_states);
-
+				for primitive in renderer.primitives_mut() {
+					primitive.translation_mut().as_mut()[0] = initial_time.elapsed().as_secs_f32().sin();
+					// primitive.translation_mut().as_mut()[1] = initial_time.elapsed().as_secs_f32().cos();
+				}
 				dt = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();

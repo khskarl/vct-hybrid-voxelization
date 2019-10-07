@@ -59,7 +59,7 @@ impl Renderer {
 
 		// Volume setup
 		let volume_view_program = load_voxel_view_program();
-		let volume_scene = Volume::new(16, &volume_view_program);
+		let volume_scene = Volume::new(64, &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -164,7 +164,7 @@ impl Renderer {
 		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
 		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
 		let half_depth = self.volume_scene.scaling().z;
-		let mut proj = glm::ortho_rh_zo(
+		let proj = glm::ortho_rh_zo(
 			-half_width,
 			half_width,
 			-half_height,
@@ -172,18 +172,18 @@ impl Renderer {
 			0.0,
 			half_depth as f32,
 		);
-
+		let translation = self.volume_scene.translation() + self.volume_scene.scaling() * 0.5;
 		let view = glm::look_at_rh(
-			&self.volume_scene.translation(),
-			&(self.volume_scene.translation() + glm::vec3(1.0, 0.0, 0.0)),
+			&translation,
+			&(translation + glm::vec3(0.0, 0.0, 1.0)),
 			&[0.0, 1.0, 0.0].into(),
 		);
 		let pv: [f32; 16] = {
 			let proj_view = proj * view;
-			let transmute_me: [[f32; 4]; 4] = proj_view.into();
+			let transmute_me: [[f32; 4]; 4] = proj.into();
 			unsafe { std::mem::transmute(transmute_me) }
 		};
-		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
+		// self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
 		unsafe {
 			gl::BindImageTexture(
@@ -358,6 +358,10 @@ impl Renderer {
 
 	pub fn volume_mut(&mut self) -> &mut Volume {
 		&mut self.volume_scene
+	}
+
+	pub fn primitives_mut(&mut self) -> &mut Vec<GpuPrimitive> {
+		&mut self.primitives
 	}
 
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {

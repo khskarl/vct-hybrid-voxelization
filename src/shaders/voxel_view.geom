@@ -19,7 +19,7 @@ uniform int resolution;
 layout (points) in;
 layout(triangle_strip, max_vertices = 12) out;
 void main() {
-	float voxel_size = (1.0 / float(resolution)) * 0.75;
+	float voxel_size = (1.0 / float(resolution)) * 1.00;
 
 	v_color = v_in[0].color.rgb;
 	vw_position = v_in[0].w_position;

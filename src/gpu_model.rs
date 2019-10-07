@@ -143,6 +143,14 @@ impl GpuPrimitive {
 		let transmute_me: [[f32; 4]; 4] = self.model_matrix().into();
 		unsafe { std::mem::transmute(transmute_me) }
 	}
+
+	pub fn translation_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.position
+	}
+
+	pub fn scaling_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.scale
+	}
 }
 
 pub struct GpuMaterial {
