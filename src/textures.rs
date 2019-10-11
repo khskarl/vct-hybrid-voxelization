@@ -50,26 +50,23 @@ impl Volume {
 		self.emission_id
 	}
 
-	pub fn set_sampler_albedo(&self, index: u32, location: u32) {
+	pub fn set_sampler_albedo(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::Uniform1i(location as i32, index as i32);
 			gl::BindTexture(gl::TEXTURE_3D, self.albedo_id());
 		}
 	}
 
-	pub fn set_sampler_normal(&self, index: u32, location: u32) {
+	pub fn set_sampler_normal(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::Uniform1i(location as i32, index as i32);
 			gl::BindTexture(gl::TEXTURE_3D, self.normal_id());
 		}
 	}
 
-	pub fn set_sampler_emission(&self, index: u32, location: u32) {
+	pub fn set_sampler_emission(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::Uniform1i(location as i32, index as i32);
 			gl::BindTexture(gl::TEXTURE_3D, self.emission_id());
 		}
 	}

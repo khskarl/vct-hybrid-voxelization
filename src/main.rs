@@ -10,6 +10,7 @@ mod textures;
 use nalgebra_glm as glm;
 
 mod scene;
+use renderer::*;
 use scene::camera::*;
 use scene::model::{Mesh, Resources};
 
@@ -183,11 +184,35 @@ fn main() {
 								Cow::from(im_str!("{}x{}x{}", x, x, x))
 							});
 							*volume.resolution_mut() = items[*index];
+
+							ui.radio_button(
+								im_str!("Albedo"),
+								renderer.rendering_mode_mut(),
+								RenderingMode::Albedo,
+							);
+							ui.same_line(100.0);
+
+							ui.radio_button(
+								im_str!("Normal"),
+								renderer.rendering_mode_mut(),
+								RenderingMode::Normal,
+							);
+							ui.same_line(200.0);
+
+							ui.radio_button(
+								im_str!("Emission"),
+								renderer.rendering_mode_mut(),
+								RenderingMode::Emission,
+							);
+							ui.radio_button(
+								im_str!("None"),
+								renderer.rendering_mode_mut(),
+								RenderingMode::Scene,
+							);
 						});
 
 						Window::new(im_str!("Transforms")).build(&ui, || {
 							let primitives = renderer.primitives_mut();
-							// ui.text(im_str!("Voxels:"));
 							for primitive in primitives {
 								ui.drag_float3(im_str!("Translation"), primitive.translation_mut().as_mut())
 									.min(-100.0)

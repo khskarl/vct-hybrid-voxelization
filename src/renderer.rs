@@ -17,13 +17,17 @@ use std::rc::Rc;
 
 use crate::textures::Volume;
 
+#[derive(Copy, Clone, PartialEq)]
 pub enum RenderingMode {
-	Volume,
 	Scene,
+	Albedo,
+	Normal,
+	Emission,
 }
 
 pub struct Renderer {
 	viewport_size: (usize, usize),
+	rendering_mode: RenderingMode,
 	primitives: Vec<GpuPrimitive>,
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
@@ -63,6 +67,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
+			rendering_mode: RenderingMode::Scene,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -113,6 +118,11 @@ impl Renderer {
 
 	fn clear_volume(&self) {
 		self.clear_program.bind();
+
+		self.volume_scene.set_sampler_albedo(0);
+		self.volume_scene.set_sampler_normal(1);
+		self.volume_scene.set_sampler_emission(2);
+
 		self
 			.clear_program
 			.get_uniform("u_width")
@@ -240,7 +250,7 @@ impl Renderer {
 		unsafe {
 			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
-			// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+			gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 		}
 	}
 
@@ -254,22 +264,27 @@ impl Renderer {
 		gl_set_depth_write(true);
 		gl_clear(true, true, true);
 
-		gl_set_cull_face(CullFace::None);
-		self.render_voxels(camera);
+		if self.rendering_mode != RenderingMode::Scene {
+			self.render_voxels(camera);
+		}
+
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
 		self.render_bounds(camera);
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {
+		gl_set_cull_face(CullFace::None);
+
 		self.volume_view_program.bind();
-		self.volume_scene.set_sampler_albedo(
-			0,
-			self.volume_view_program.get_uniform("volume").location() as u32,
-		);
-		unsafe {
-			gl::BindTexture(gl::TEXTURE_3D, self.volume_scene.albedo_id());
-		}
+
+		match self.rendering_mode {
+			RenderingMode::Scene => self.volume_scene.set_sampler_albedo(0),
+			RenderingMode::Albedo => self.volume_scene.set_sampler_albedo(0),
+			RenderingMode::Normal => self.volume_scene.set_sampler_normal(0),
+			RenderingMode::Emission => self.volume_scene.set_sampler_emission(0),
+		};
+
 		let translation = glm::translation(self.volume_scene.translation());
 		let scaling = glm::scaling(self.volume_scene.scaling());
 		let mvp = camera.proj_view() * (translation * scaling);
@@ -386,6 +401,10 @@ impl Renderer {
 
 	pub fn primitives_mut(&mut self) -> &mut Vec<GpuPrimitive> {
 		&mut self.primitives
+	}
+
+	pub fn rendering_mode_mut(&mut self) -> &mut RenderingMode {
+		&mut self.rendering_mode
 	}
 
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {
