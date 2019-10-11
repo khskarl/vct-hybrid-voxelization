@@ -188,7 +188,25 @@ impl Renderer {
 		unsafe {
 			gl::BindImageTexture(
 				0,
-				self.volume_scene.diffuse_id(),
+				self.volume_scene.albedo_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+			gl::BindImageTexture(
+				1,
+				self.volume_scene.normal_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+			gl::BindImageTexture(
+				2,
+				self.volume_scene.emission_id(),
 				0,
 				gl::TRUE,
 				0,
@@ -204,6 +222,12 @@ impl Renderer {
 				.voxelize_program
 				.get_uniform("model")
 				.set_mat4f(&primitive.model_matrix_raw());
+
+			let mat = &primitive.material();
+			self
+				.pbr_program
+				.get_uniform("albedo_map")
+				.set_sampler_2d(&mat.albedo(), 0);
 
 			gl_draw_elements(
 				DrawMode::Triangles,
@@ -239,12 +263,12 @@ impl Renderer {
 
 	pub fn render_voxels(&self, camera: &Camera) {
 		self.volume_view_program.bind();
-		self.volume_scene.set_sampler(
+		self.volume_scene.set_sampler_albedo(
 			0,
 			self.volume_view_program.get_uniform("volume").location() as u32,
 		);
 		unsafe {
-			gl::BindTexture(gl::TEXTURE_3D, self.volume_scene.diffuse_id());
+			gl::BindTexture(gl::TEXTURE_3D, self.volume_scene.albedo_id());
 		}
 		let translation = glm::translation(self.volume_scene.translation());
 		let scaling = glm::scaling(self.volume_scene.scaling());

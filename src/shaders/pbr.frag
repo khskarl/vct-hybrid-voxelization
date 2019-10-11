@@ -154,6 +154,6 @@ void main() {
 	}
 	vec3 ambient = albedo * vec3(0.2, 0.15, 0.1) * occlusion;
 	float NdotL = max(dot(normal, -light_direction[0]), 0.0);
-	vec3 color = (direct + ambient) * 0.001 + vec3(v_uv, 1.0);
+	vec3 color = (direct + ambient);
 	out_color = vec4(color, 1.0);
 }
