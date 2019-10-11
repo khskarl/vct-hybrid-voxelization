@@ -12,6 +12,7 @@ uniform int u_depth;
 uniform mat4 pv;
 
 out vec3 gw_position;
+out vec2 g_uv;
 out flat vec4 g_AABB;
 out flat int g_swizzle;
 
@@ -104,6 +105,7 @@ void main() {
 	for(int i = 0; i < 3; i++) {
 		gl_Position = s_position[i];
 		gw_position = v_in[i].w_position;
+		g_uv = v_in[i].uv;
 		g_AABB = AABB;
 		g_swizzle = swizzle_axis;
 

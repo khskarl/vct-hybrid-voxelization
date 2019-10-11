@@ -1,3 +1,4 @@
+// Geometry Shader that emits a cube from a vertex
 // Credits: Solomon Medland
 // https://stackoverflow.com/questions/28375338/cube-using-single-gl-triangle-strip
 

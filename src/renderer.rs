@@ -158,7 +158,7 @@ impl Renderer {
 
 		self.voxelize_program.bind();
 		self.voxelize_program.get_uniform("u_width").set_1i(width);
-		self.voxelize_program.get_uniform("u_height").set_1i(height);
+		// self.voxelize_program.get_uniform("u_height").set_1i(height);
 		self.voxelize_program.get_uniform("u_depth").set_1i(depth);
 
 		let half_width = self.volume_scene.scaling().x as f32 / 2.0;

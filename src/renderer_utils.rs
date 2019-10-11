@@ -1,6 +1,7 @@
 use crate::gpu_model::{GpuMaterial, GpuPrimitive};
 use crate::scene::material::{Material, Texture};
 use gl_helpers::*;
+use glsl_include::Context;
 use nalgebra_glm as glm;
 use std::fs;
 
@@ -9,6 +10,17 @@ use std::fs;
 static VERTEX_EXPECT: &str = "Couldn't read the vertex shader :(";
 static GEOMETRY_EXPECT: &str = "Couldn't read the geometry shader :(";
 static FRAGMENT_EXPECT: &str = "Couldn't read the fragment shader :(";
+static SHARED_EXPECT: &str = "Couldn't read the shared glsl :(";
+static EXPAND_EXPECT: &str = "Something went wrong in the expansion :(";
+
+pub fn load_shared_glsl_context<'a>() -> (Context<'a>) {
+	let shared_src = fs::read_to_string("src/shaders/shared.glsl").expect(SHARED_EXPECT);
+
+	let mut context = Context::new();
+	context.include("shared.glsl", &shared_src[..]);
+
+	context
+}
 
 pub fn load_pbr_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/pbr.vert").expect(VERTEX_EXPECT);
@@ -36,6 +48,11 @@ pub fn load_voxelize_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/voxelize.vert").expect(VERTEX_EXPECT);
 	let gs_src = fs::read_to_string("src/shaders/voxelize.geom").expect(GEOMETRY_EXPECT);
 	let fs_src = fs::read_to_string("src/shaders/voxelize.frag").expect(FRAGMENT_EXPECT);
+
+	let context = load_shared_glsl_context();
+	let vs_src = context.expand(vs_src).expect(EXPAND_EXPECT);
+	let gs_src = context.expand(gs_src).expect(EXPAND_EXPECT);
+	let fs_src = context.expand(fs_src).expect(EXPAND_EXPECT);
 
 	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
 }
