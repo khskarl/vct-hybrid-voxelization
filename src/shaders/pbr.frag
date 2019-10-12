@@ -108,6 +108,7 @@ void main() {
 	vec3 normal = texture(normal_map, uv).rgb;
 	normal = normalize(normal * 2.0 - 1.0);
 	normal = normalize(v_TBN * normal);
+
 	float occlusion = texture(occlusion_map, uv).r;
 
 	vec3 V = normalize(camera_position - vw_position.xyz);
@@ -152,8 +153,7 @@ void main() {
 
 		direct += radiance / attenuation;
 	}
-	vec3 ambient = albedo * vec3(0.2, 0.15, 0.1) * occlusion;
-	float NdotL = max(dot(normal, -light_direction[0]), 0.0);
+	vec3 ambient = albedo * vec3(0.1, 0.07, 0.05) * 0.2 * occlusion;
 	vec3 color = (direct + ambient);
 	out_color = vec4(color, 1.0);
 }

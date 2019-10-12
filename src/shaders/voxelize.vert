@@ -18,7 +18,7 @@ uniform mat4 pv;
 uniform mat4 model;
 
 void main() {
-	vec4 w_position = model * vec4(aPosition, 1.0);
+	vec4 w_position = pv * model * vec4(aPosition, 1.0);
   gl_Position = w_position;
 
   v_out.w_position = w_position.xyz;

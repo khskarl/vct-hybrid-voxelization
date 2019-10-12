@@ -12,14 +12,14 @@ This project was completely rewritten in a monstrous combination of raw OpenGL a
 ```
 
 ## Planned Features
-- [ ] Voxelization by Crassin & Green
+- [x] Voxelization by Crassin & Green
 - [ ] Voxelization by Rauwendaal
 - [ ] Diffuse GI!
 - [x] Major changes in the last second
 - [x] Tears
 - [x] Suffering
 - [x] Is this hope??
-- [ ] Joy!
+- [x] Joy!
 
 ## Hopefully-one-day Features
 - [ ] Throw it all away

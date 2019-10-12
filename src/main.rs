@@ -51,7 +51,7 @@ fn main() {
 	let imgui_renderer =
 		imgui_opengl_renderer::Renderer::new(&mut imgui, |s| window_gl.get_proc_address(s) as _);
 
-	let mut camera = Camera::new(glm::vec3(-5.0, 2.0, 0.0), 0.0, 0.0);
+	let mut camera = Camera::new(glm::vec3(0.0, 2.0, 10.0), -90.0, 0.0);
 	{
 		use glm::*;
 		let mut resources = Resources::new();
@@ -63,6 +63,12 @@ fn main() {
 		// ));
 		renderer.submit_mesh(&Mesh::new(
 			"assets/models/sphere.glb",
+			vec3(0.0, 0.0, 0.0),
+			vec3(1.0, 1.0, 1.0),
+			&mut resources,
+		));
+		renderer.submit_mesh(&Mesh::new(
+			"assets/models/cornell_box.glb",
 			vec3(0.0, 0.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
@@ -235,10 +241,9 @@ fn main() {
 			},
 			Event::EventsCleared => {
 				update_camera(&mut camera, dt, &key_states);
-				for primitive in renderer.primitives_mut() {
-					primitive.translation_mut().as_mut()[0] = initial_time.elapsed().as_secs_f32().sin();
-					// primitive.translation_mut().as_mut()[1] = initial_time.elapsed().as_secs_f32().cos();
-				}
+				let primitives = renderer.primitives_mut();
+				primitives[0].translation_mut().as_mut()[0] = initial_time.elapsed().as_secs_f32().sin();
+
 				dt = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();

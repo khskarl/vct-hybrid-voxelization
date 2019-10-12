@@ -67,7 +67,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Scene,
+			rendering_mode: RenderingMode::Albedo,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -174,26 +174,31 @@ impl Renderer {
 		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
 		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
 		let half_depth = self.volume_scene.scaling().z;
-		let proj = glm::ortho_rh_zo(
+		let proj = glm::ortho_rh(
 			-half_width,
-			half_width,
+			half_width + 0.1,
 			-half_height,
-			half_height,
-			0.0,
+			half_height + 0.1,
 			half_depth as f32,
+			0.0,
 		);
-		let translation = self.volume_scene.translation() + self.volume_scene.scaling() * 0.5;
+		// let translation = self.volume_scene.translation() + self.volume_scene.scaling() * 0.5;
+		// let view = glm::look_at_rh(
+		// 	&translation,
+		// 	&(translation + glm::vec3(0.0, 0.0, 1.0)),
+		// 	&[0.0, 1.0, 0.0].into(),
+		// );
 		let view = glm::look_at_rh(
-			&translation,
-			&(translation + glm::vec3(0.0, 0.0, 1.0)),
+			&glm::vec3(0.0, 5.0, 5.0),
+			&(glm::vec3(0.0, 5.0, 5.0) + glm::vec3(0.0, 0.0, -1.0)),
 			&[0.0, 1.0, 0.0].into(),
 		);
 		let pv: [f32; 16] = {
 			let proj_view = proj * view;
-			let transmute_me: [[f32; 4]; 4] = proj.into();
+			let transmute_me: [[f32; 4]; 4] = proj_view.into();
 			unsafe { std::mem::transmute(transmute_me) }
 		};
-		// self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
+		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
 		unsafe {
 			gl::BindImageTexture(
