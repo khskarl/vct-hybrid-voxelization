@@ -115,7 +115,7 @@ fn default_metaghness() -> Texture {
 }
 
 fn default_normal() -> Texture {
-	let img = ImageBuffer::from_fn(1, 1, |_, _| image::Rgb([0, 0, 255u8]));
+	let img = ImageBuffer::from_fn(1, 1, |_, _| image::Rgb([128u8, 128u8, 255u8]));
 
 	Texture::new("default_normal".to_owned(), DynamicImage::ImageRgb8(img))
 }
