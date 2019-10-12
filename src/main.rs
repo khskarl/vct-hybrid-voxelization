@@ -63,7 +63,7 @@ fn main() {
 		// ));
 		renderer.submit_mesh(&Mesh::new(
 			"assets/models/sphere.glb",
-			vec3(0.0, 0.0, 0.0),
+			vec3(0.0, 2.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
 		));
@@ -219,15 +219,21 @@ fn main() {
 
 						Window::new(im_str!("Transforms")).build(&ui, || {
 							let primitives = renderer.primitives_mut();
+							let mut i = 0;
 							for primitive in primitives {
-								ui.drag_float3(im_str!("Translation"), primitive.translation_mut().as_mut())
+								ui.drag_float3(
+									&im_str!("Translation##{}", i),
+									primitive.translation_mut().as_mut(),
+								)
+								.min(-100.0)
+								.max(100.0)
+								.build();
+								ui.drag_float3(&im_str!("Scale##{}", i), primitive.scaling_mut().as_mut())
 									.min(-100.0)
 									.max(100.0)
 									.build();
-								ui.drag_float3(im_str!("Scale"), primitive.scaling_mut().as_mut())
-									.min(-100.0)
-									.max(100.0)
-									.build();
+
+								i += 1;
 							}
 						});
 					}
@@ -242,7 +248,8 @@ fn main() {
 			Event::EventsCleared => {
 				update_camera(&mut camera, dt, &key_states);
 				let primitives = renderer.primitives_mut();
-				primitives[0].translation_mut().as_mut()[0] = initial_time.elapsed().as_secs_f32().sin();
+				primitives[0].translation_mut().as_mut()[2] =
+					initial_time.elapsed().as_secs_f32().sin() * 2.0 + 3.0;
 
 				dt = Instant::now()
 					.duration_since(start_frame_time)

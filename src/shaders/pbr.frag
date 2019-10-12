@@ -30,7 +30,7 @@ float calculate_shadow(vec4 l_pos) {
 	vec3 proj_coords = l_pos.xyz / l_pos.w;
 	proj_coords = proj_coords * 0.5 + 0.5;
 
-	float bias = 0.005;
+	float bias = 0.00001;
 	float current_depth = proj_coords.z;
 
 	float shadow = 0.0;
@@ -54,18 +54,18 @@ float distribution_ggx(vec3 N, vec3 H, float a) {
 	return a2 / denom;
 }
 
-float GeometrySchlickGGX(float NdotV, float k) {
+float geometry_smith_ggx(float NdotV, float k) {
 	float nom   = NdotV;
 	float denom = NdotV * (1.0 - k) + k;
 
 	return nom / denom;
 }
 
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float k) {
+float geometry_smith(vec3 N, vec3 V, vec3 L, float k) {
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
-	float ggx1 = GeometrySchlickGGX(NdotV, k);
-	float ggx2 = GeometrySchlickGGX(NdotL, k);
+	float ggx1 = geometry_smith_ggx(NdotV, k);
+	float ggx2 = geometry_smith_ggx(NdotL, k);
 
 	return ggx1 * ggx2;
 }
@@ -81,7 +81,7 @@ vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metal
 
 	vec3 N = normal;
 	float NDF = distribution_ggx(N, H, roughness);
-	float G   = GeometrySmith(N, V, L, roughness);
+	float G   = geometry_smith(N, V, L, roughness);
 	vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
 	vec3 radiance = Lc;
 

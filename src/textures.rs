@@ -50,6 +50,38 @@ impl Volume {
 		self.emission_id
 	}
 
+	pub fn bind_volumes(&self) {
+		unsafe {
+			gl::BindImageTexture(
+				0,
+				self.albedo_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+			gl::BindImageTexture(
+				1,
+				self.normal_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+			gl::BindImageTexture(
+				2,
+				self.emission_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+		}
+	}
+
 	pub fn set_sampler_albedo(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);

@@ -1,3 +1,6 @@
+const float PI = 3.14159265f;
+const float EPSILON = 1e-30;
+
 const mat3 swizzleLUT[] = {
 	mat3(0, 0, 1,
 			 0, 1, 0,

@@ -10,6 +10,7 @@ use std::fs;
 static VERTEX_EXPECT: &str = "Couldn't read the vertex shader :(";
 static GEOMETRY_EXPECT: &str = "Couldn't read the geometry shader :(";
 static FRAGMENT_EXPECT: &str = "Couldn't read the fragment shader :(";
+static COMPUTE_EXPECT: &str = "Couldn't read the compute shader :(";
 static SHARED_EXPECT: &str = "Couldn't read the shared glsl :(";
 static EXPAND_EXPECT: &str = "Something went wrong in the expansion :(";
 
@@ -69,6 +70,12 @@ pub fn load_clear_program() -> GLProgram {
 	let fs_src = fs::read_to_string("src/shaders/empty.frag").expect(FRAGMENT_EXPECT);
 
 	GLProgram::new(&vs_src[..], &fs_src[..])
+}
+
+pub fn load_radiance_injection_program() -> GLProgram {
+	let cs_src = fs::read_to_string("src/shaders/radiance_injection.comp").expect(COMPUTE_EXPECT);
+
+	GLProgram::new_comp(&cs_src[..])
 }
 
 //////////////////////

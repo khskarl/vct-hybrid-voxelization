@@ -41,6 +41,7 @@ pub struct Renderer {
 	voxelize_program: GLProgram,
 	bounds_program: GLProgram,
 	clear_program: GLProgram,
+	inject_program: GLProgram,
 }
 
 impl Renderer {
@@ -67,7 +68,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Albedo,
+			rendering_mode: RenderingMode::Emission,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -81,6 +82,7 @@ impl Renderer {
 			voxelize_program: load_voxelize_program(),
 			bounds_program: load_bounds_program(),
 			clear_program: load_clear_program(),
+			inject_program: load_radiance_injection_program(),
 		}
 	}
 
@@ -138,6 +140,28 @@ impl Renderer {
 		self.volume_scene.draw();
 	}
 
+	fn inject_light(&self) {
+		self.inject_program.bind();
+		self.volume_scene.bind_volumes();
+		let resolution = self.volume_scene.resolution();
+
+		self
+			.inject_program
+			.get_uniform("u_width")
+			.set_1i(resolution as i32);
+		self
+			.inject_program
+			.get_uniform("u_height")
+			.set_1i(resolution as i32);
+		self
+			.inject_program
+			.get_uniform("u_depth")
+			.set_1i(resolution as i32);
+		unsafe {
+			gl::DispatchCompute(resolution as u32, resolution as u32, resolution as u32);
+		}
+	}
+
 	fn render_bounds(&self, camera: &Camera) {
 		self.bounds_program.bind();
 
@@ -164,7 +188,10 @@ impl Renderer {
 		gl_set_cull_face(CullFace::None);
 		gl_set_viewport(0, 0, width as usize, height as usize);
 		gl_clear(true, true, false);
-		unsafe { gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE) };
+		unsafe {
+			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
+			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		};
 
 		self.voxelize_program.bind();
 		self.voxelize_program.get_uniform("u_width").set_1i(width);
@@ -200,35 +227,7 @@ impl Renderer {
 		};
 		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
-		unsafe {
-			gl::BindImageTexture(
-				0,
-				self.volume_scene.albedo_id(),
-				0,
-				gl::TRUE,
-				0,
-				gl::READ_WRITE,
-				gl::RGBA8,
-			);
-			gl::BindImageTexture(
-				1,
-				self.volume_scene.normal_id(),
-				0,
-				gl::TRUE,
-				0,
-				gl::READ_WRITE,
-				gl::RGBA8,
-			);
-			gl::BindImageTexture(
-				2,
-				self.volume_scene.emission_id(),
-				0,
-				gl::TRUE,
-				0,
-				gl::READ_WRITE,
-				gl::RGBA8,
-			);
-		}
+		self.volume_scene.bind_volumes();
 
 		for primitive in &self.primitives {
 			primitive.bind();
@@ -255,14 +254,15 @@ impl Renderer {
 		unsafe {
 			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
-			gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+			// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 		}
 	}
 
 	pub fn render(&self, camera: &Camera) {
-		self.voxelize();
-
 		self.render_to_shadow_map();
+
+		self.voxelize();
+		self.inject_light();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
 		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);

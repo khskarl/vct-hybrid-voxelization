@@ -20,10 +20,18 @@ pub fn print_opengl_diagnostics() {
 	);
 
 	let mut max_geometry_tex = 0;
+	let mut group_size = [0, 0, 0];
 	unsafe {
 		gl::GetIntegerv(gl::MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, &mut max_geometry_tex);
+		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 0, &mut group_size[0]);
+		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 1, &mut group_size[1]);
+		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 2, &mut group_size[2]);
 	}
 	println!("MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
+	println!(
+		"MAX_COMPUTE_WORK_GROUP_SIZE : ({}, {}, {})",
+		group_size[0], group_size[1], group_size[2]
+	);
 
 	print_needed_extensions();
 }
