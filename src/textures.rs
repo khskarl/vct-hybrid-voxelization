@@ -9,6 +9,7 @@ pub struct Volume {
 	albedo_id: u32,
 	normal_id: u32,
 	emission_id: u32,
+	radiance_id: u32,
 	resolution: usize,
 	primitive: GpuPrimitive,
 	translation: glm::Vec3,
@@ -26,6 +27,7 @@ impl Volume {
 			albedo_id: allocate_texture_3D(resolution),
 			normal_id: allocate_texture_3D(resolution),
 			emission_id: allocate_texture_3D(resolution),
+			radiance_id: allocate_texture_3D(resolution),
 			resolution,
 			primitive,
 			translation: glm::Vec3::new(5.0, 0.0, -5.0),
@@ -50,10 +52,14 @@ impl Volume {
 		self.emission_id
 	}
 
-	pub fn bind_volumes(&self) {
+	pub fn radiance_id(&self) -> u32 {
+		self.radiance_id
+	}
+
+	pub fn bind_image_albedo(&self, index: u32) {
 		unsafe {
 			gl::BindImageTexture(
-				0,
+				index,
 				self.albedo_id(),
 				0,
 				gl::TRUE,
@@ -61,8 +67,13 @@ impl Volume {
 				gl::READ_WRITE,
 				gl::RGBA8,
 			);
+		}
+	}
+
+	pub fn bind_image_normal(&self, index: u32) {
+		unsafe {
 			gl::BindImageTexture(
-				1,
+				index,
 				self.normal_id(),
 				0,
 				gl::TRUE,
@@ -70,8 +81,13 @@ impl Volume {
 				gl::READ_WRITE,
 				gl::RGBA8,
 			);
+		}
+	}
+
+	pub fn bind_image_emission(&self, index: u32) {
+		unsafe {
 			gl::BindImageTexture(
-				2,
+				index,
 				self.emission_id(),
 				0,
 				gl::TRUE,
@@ -82,24 +98,45 @@ impl Volume {
 		}
 	}
 
-	pub fn set_sampler_albedo(&self, index: u32) {
+	pub fn bind_image_radiance(&self, index: u32) {
+		unsafe {
+			gl::BindImageTexture(
+				index,
+				self.radiance_id(),
+				0,
+				gl::TRUE,
+				0,
+				gl::READ_WRITE,
+				gl::RGBA8,
+			);
+		}
+	}
+
+	pub fn bind_texture_albedo(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
 			gl::BindTexture(gl::TEXTURE_3D, self.albedo_id());
 		}
 	}
 
-	pub fn set_sampler_normal(&self, index: u32) {
+	pub fn bind_texture_normal(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
 			gl::BindTexture(gl::TEXTURE_3D, self.normal_id());
 		}
 	}
 
-	pub fn set_sampler_emission(&self, index: u32) {
+	pub fn bind_texture_emission(&self, index: u32) {
 		unsafe {
 			gl::ActiveTexture(gl::TEXTURE0 + index);
 			gl::BindTexture(gl::TEXTURE_3D, self.emission_id());
+		}
+	}
+
+	pub fn bind_texture_radiance(&self, index: u32) {
+		unsafe {
+			gl::ActiveTexture(gl::TEXTURE0 + index);
+			gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
 		}
 	}
 

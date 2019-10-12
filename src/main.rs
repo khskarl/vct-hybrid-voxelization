@@ -211,6 +211,13 @@ fn main() {
 								RenderingMode::Emission,
 							);
 							ui.radio_button(
+								im_str!("Radiance"),
+								renderer.rendering_mode_mut(),
+								RenderingMode::Radiance,
+							);
+							ui.same_line(100.0);
+
+							ui.radio_button(
 								im_str!("None"),
 								renderer.rendering_mode_mut(),
 								RenderingMode::Scene,

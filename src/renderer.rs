@@ -23,6 +23,7 @@ pub enum RenderingMode {
 	Albedo,
 	Normal,
 	Emission,
+	Radiance,
 }
 
 pub struct Renderer {
@@ -68,7 +69,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Emission,
+			rendering_mode: RenderingMode::Radiance,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -121,9 +122,10 @@ impl Renderer {
 	fn clear_volume(&self) {
 		self.clear_program.bind();
 
-		self.volume_scene.set_sampler_albedo(0);
-		self.volume_scene.set_sampler_normal(1);
-		self.volume_scene.set_sampler_emission(2);
+		self.volume_scene.bind_texture_albedo(0);
+		self.volume_scene.bind_texture_normal(1);
+		self.volume_scene.bind_texture_emission(2);
+		self.volume_scene.bind_texture_radiance(3);
 
 		self
 			.clear_program
@@ -142,9 +144,22 @@ impl Renderer {
 
 	fn inject_light(&self) {
 		self.inject_program.bind();
-		self.volume_scene.bind_volumes();
-		let resolution = self.volume_scene.resolution();
 
+		// self
+		// 	.inject_program
+		// 	.get_uniform("u_light_matrix")
+		// 	.set_mat4f(&light_matrix(&self.lights[0]));
+
+		self.volume_scene.bind_texture_albedo(0);
+		self.volume_scene.bind_texture_normal(1);
+		self.volume_scene.bind_texture_emission(2);
+		self.volume_scene.bind_image_radiance(3);
+		// self
+		// 	.inject_program
+		// 	.get_uniform("u_shadow_map")
+		// 	.set_sampler_2d(&self.depth_map, 4);
+
+		let resolution = self.volume_scene.resolution();
 		self
 			.inject_program
 			.get_uniform("u_width")
@@ -227,7 +242,9 @@ impl Renderer {
 		};
 		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
-		self.volume_scene.bind_volumes();
+		self.volume_scene.bind_image_albedo(0);
+		self.volume_scene.bind_image_normal(1);
+		self.volume_scene.bind_image_emission(2);
 
 		for primitive in &self.primitives {
 			primitive.bind();
@@ -284,10 +301,11 @@ impl Renderer {
 		self.volume_view_program.bind();
 
 		match self.rendering_mode {
-			RenderingMode::Scene => self.volume_scene.set_sampler_albedo(0),
-			RenderingMode::Albedo => self.volume_scene.set_sampler_albedo(0),
-			RenderingMode::Normal => self.volume_scene.set_sampler_normal(0),
-			RenderingMode::Emission => self.volume_scene.set_sampler_emission(0),
+			RenderingMode::Scene => self.volume_scene.bind_texture_albedo(0),
+			RenderingMode::Albedo => self.volume_scene.bind_texture_albedo(0),
+			RenderingMode::Normal => self.volume_scene.bind_texture_normal(0),
+			RenderingMode::Emission => self.volume_scene.bind_texture_emission(0),
+			RenderingMode::Radiance => self.volume_scene.bind_texture_radiance(0),
 		};
 
 		let translation = glm::translation(self.volume_scene.translation());

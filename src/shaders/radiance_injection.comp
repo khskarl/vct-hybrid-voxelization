@@ -6,9 +6,11 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 layout (binding = 0) uniform sampler3D u_voxel_albedo;
 layout (binding = 1) uniform sampler3D u_voxel_normal;
 layout (binding = 2) uniform sampler3D u_voxel_emission;
+layout (binding = 3, rgba8) uniform image3D u_voxel_radiance;
 
-layout (binding = 2, rgba8) uniform image3D u_voxel_radiance;
+layout (binding = 4) uniform sampler2D u_shadow_map;
 
+uniform mat4 light_matrix;
 uniform int u_width;
 uniform int u_height;
 uniform int u_depth;
