@@ -21,7 +21,6 @@ vec3 decode_normal(vec3 normal) {
 	return normal * 2.0f - vec3(1.0f);
 }
 
-
 void discard_if_outside_aabb(vec4 aabb, int resolution) {
 	vec2 aabb_min = floor((aabb.xy * 0.5 + 0.5) * resolution);
 	vec2 aabb_max = ceil((aabb.zw * 0.5 + 0.5) * resolution);

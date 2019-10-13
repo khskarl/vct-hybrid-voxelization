@@ -253,13 +253,13 @@ impl Renderer {
 
 		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
 		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
-		let half_depth = self.volume_scene.scaling().z;
+		let depth = self.volume_scene.scaling().z;
 		let proj = glm::ortho_rh(
 			-half_width,
 			half_width + 0.1,
 			-half_height,
 			half_height + 0.1,
-			half_depth as f32,
+			depth,
 			0.0,
 		);
 		// let translation = self.volume_scene.translation() + self.volume_scene.scaling() * 0.5;
