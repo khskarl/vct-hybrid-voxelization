@@ -7,12 +7,10 @@ use crate::scene::model::Mesh;
 use gl;
 use gl_helpers::*;
 
-use glm::UVec2;
 use nalgebra_glm as glm;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::ffi::CString;
 use std::rc::Rc;
 
 use crate::textures::Volume;
@@ -196,6 +194,10 @@ impl Renderer {
 				resolution as u32 / 8,
 				resolution as u32 / 8,
 			);
+
+			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+			self.volume_scene.generate_mipmap();
 		}
 	}
 

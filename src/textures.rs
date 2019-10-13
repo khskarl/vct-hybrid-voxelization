@@ -140,6 +140,15 @@ impl Volume {
 		}
 	}
 
+	pub fn generate_mipmap(&self) {
+		unsafe {
+			// gl::GenerateTextureMipmap(self.albedo_id());
+			// gl::GenerateTextureMipmap(self.normal_id());
+			// gl::GenerateTextureMipmap(self.emission_id());
+			gl::GenerateTextureMipmap(self.radiance_id());
+		}
+	}
+
 	pub fn count_cells(&self) -> usize {
 		self.resolution * self.resolution * self.resolution
 	}
