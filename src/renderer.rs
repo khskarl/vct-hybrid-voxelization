@@ -262,12 +262,6 @@ impl Renderer {
 			depth,
 			0.0,
 		);
-		// let translation = self.volume_scene.translation() + self.volume_scene.scaling() * 0.5;
-		// let view = glm::look_at_rh(
-		// 	&translation,
-		// 	&(translation + glm::vec3(0.0, 0.0, 1.0)),
-		// 	&[0.0, 1.0, 0.0].into(),
-		// );
 		let position =
 			self.volume_scene.translation() + glm::vec3(0.0, 0.0, self.volume_scene.scaling()[2] * 0.5);
 		let view = glm::look_at_rh(
