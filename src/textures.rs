@@ -14,6 +14,8 @@ pub struct Volume {
 	primitive: GpuPrimitive,
 	translation: glm::Vec3,
 	scaling: glm::Vec3,
+	view_translation: glm::Vec3,
+	view_scaling: glm::Vec3,
 }
 
 impl Volume {
@@ -30,8 +32,10 @@ impl Volume {
 			radiance_id: allocate_texture_3D(resolution),
 			resolution,
 			primitive,
-			translation: glm::Vec3::new(5.15, 0.0, -5.0),
+			translation: glm::Vec3::new(0.0, 5.0, 0.0),
 			scaling: glm::Vec3::new(10.0, 10.0, 10.0),
+			view_translation: glm::Vec3::new(10.15, 5.0, 0.0),
+			view_scaling: glm::Vec3::new(10.0, 10.0, 10.0),
 		}
 	}
 
@@ -169,12 +173,28 @@ impl Volume {
 		&self.scaling
 	}
 
+	pub const fn view_translation(&self) -> &glm::Vec3 {
+		&self.view_translation
+	}
+
+	pub const fn view_scaling(&self) -> &glm::Vec3 {
+		&self.view_scaling
+	}
+
 	pub fn translation_mut(&mut self) -> &mut glm::Vec3 {
 		&mut self.translation
 	}
 
 	pub fn scaling_mut(&mut self) -> &mut glm::Vec3 {
 		&mut self.scaling
+	}
+
+	pub fn view_translation_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.view_translation
+	}
+
+	pub fn view_scaling_mut(&mut self) -> &mut glm::Vec3 {
+		&mut self.view_scaling
 	}
 }
 

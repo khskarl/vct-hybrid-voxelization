@@ -67,7 +67,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Radiance,
+			rendering_mode: RenderingMode::Albedo,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -204,8 +204,22 @@ impl Renderer {
 	fn render_bounds(&self, camera: &Camera) {
 		self.bounds_program.bind();
 
-		let translation = glm::translation(self.volume_scene.translation());
+		let translation =
+			glm::translation(&(self.volume_scene.translation() - self.volume_scene.scaling() * 0.5));
 		let scaling = glm::scaling(self.volume_scene.scaling());
+		let mvp = camera.proj_view() * (translation * scaling);
+
+		self
+			.volume_view_program
+			.get_uniform("mvp")
+			.set_mat4f(<&[f32; 16]>::try_from(mvp.as_slice()).unwrap());
+
+		gl_draw_arrays(DrawMode::Lines, 0, 24);
+
+		let translation = glm::translation(
+			&(self.volume_scene.view_translation() - self.volume_scene.view_scaling() * 0.5),
+		);
+		let scaling = glm::scaling(self.volume_scene.view_scaling());
 		let mvp = camera.proj_view() * (translation * scaling);
 
 		self
@@ -254,9 +268,11 @@ impl Renderer {
 		// 	&(translation + glm::vec3(0.0, 0.0, 1.0)),
 		// 	&[0.0, 1.0, 0.0].into(),
 		// );
+		let position =
+			self.volume_scene.translation() + glm::vec3(0.0, 0.0, self.volume_scene.scaling()[2] * 0.5);
 		let view = glm::look_at_rh(
-			&glm::vec3(0.0, 5.0, 5.0),
-			&(glm::vec3(0.0, 5.0, 5.0) + glm::vec3(0.0, 0.0, -1.0)),
+			&position,
+			&(position + glm::vec3(0.0, 0.0, -1.0)),
 			&[0.0, 1.0, 0.0].into(),
 		);
 		let pv: [f32; 16] = {
@@ -332,8 +348,10 @@ impl Renderer {
 			RenderingMode::Radiance => self.volume_scene.bind_texture_radiance(0),
 		};
 
-		let translation = glm::translation(self.volume_scene.translation());
-		let scaling = glm::scaling(self.volume_scene.scaling());
+		let translation = glm::translation(
+			&(self.volume_scene.view_translation() - self.volume_scene.view_scaling() * 0.5),
+		);
+		let scaling = glm::scaling(self.volume_scene.view_scaling());
 		let mvp = camera.proj_view() * (translation * scaling);
 
 		self

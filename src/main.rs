@@ -68,6 +68,12 @@ fn main() {
 			&mut resources,
 		));
 		renderer.submit_mesh(&Mesh::new(
+			"assets/models/sphere.glb",
+			vec3(0.0, 5.0, 5.0),
+			vec3(1.0, 1.0, 1.0),
+			&mut resources,
+		));
+		renderer.submit_mesh(&Mesh::new(
 			"assets/models/cornell_box.glb",
 			vec3(0.0, 0.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
@@ -176,12 +182,15 @@ fn main() {
 							ui.text(im_str!("Voxels:"));
 
 							ui.drag_float3(im_str!("Translation"), volume.translation_mut().as_mut())
-								.min(-100.0)
-								.max(100.0)
 								.build();
 							ui.drag_float3(im_str!("Scale"), volume.scaling_mut().as_mut())
-								.min(-100.0)
-								.max(100.0)
+								.build();
+							ui.drag_float3(
+								im_str!("ViewTranslation"),
+								volume.view_translation_mut().as_mut(),
+							)
+							.build();
+							ui.drag_float3(im_str!("ViewScale"), volume.view_scaling_mut().as_mut())
 								.build();
 
 							let index = &mut imgui_state.resolution_index;
