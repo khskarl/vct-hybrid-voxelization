@@ -145,19 +145,27 @@ impl Renderer {
 	fn inject_light(&self) {
 		self.inject_program.bind();
 
-		// self
-		// 	.inject_program
-		// 	.get_uniform("u_light_matrix")
-		// 	.set_mat4f(&light_matrix(&self.lights[0]));
+		self
+			.inject_program
+			.get_uniform("u_light_matrix")
+			.set_mat4f(&light_matrix(&self.lights[0]));
+		self
+			.inject_program
+			.get_uniform("u_light_direction")
+			.set_3f(1, &self.lights[0].direction.into());
+		self
+			.inject_program
+			.get_uniform("u_light_color")
+			.set_3f(1, &self.lights[0].color.into());
 
 		self.volume_scene.bind_texture_albedo(0);
 		self.volume_scene.bind_texture_normal(1);
 		self.volume_scene.bind_texture_emission(2);
 		self.volume_scene.bind_image_radiance(3);
-		// self
-		// 	.inject_program
-		// 	.get_uniform("u_shadow_map")
-		// 	.set_sampler_2d(&self.depth_map, 4);
+		self
+			.inject_program
+			.get_uniform("u_shadow_map")
+			.set_sampler_2d(&self.depth_map, 4);
 
 		let resolution = self.volume_scene.resolution();
 		self
@@ -172,8 +180,22 @@ impl Renderer {
 			.inject_program
 			.get_uniform("u_depth")
 			.set_1i(resolution as i32);
+
+		let translation = glm::translation(self.volume_scene.translation());
+		let scaling = glm::scaling(self.volume_scene.scaling());
+		let model = (scaling);
+
+		self
+			.inject_program
+			.get_uniform("u_model")
+			.set_mat4f(<&[f32; 16]>::try_from(model.as_slice()).unwrap());
+
 		unsafe {
-			gl::DispatchCompute(resolution as u32, resolution as u32, resolution as u32);
+			gl::DispatchCompute(
+				resolution as u32 / 8,
+				resolution as u32 / 8,
+				resolution as u32 / 8,
+			);
 		}
 	}
 

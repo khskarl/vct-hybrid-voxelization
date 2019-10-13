@@ -1,7 +1,7 @@
-#version 330
+#version 450
 #define MAX_LIGHTS 4
 
-const float M_PI = 3.1415926535897932384626433832795;
+#include <shared.glsl>
 
 uniform vec3 light_direction[MAX_LIGHTS];
 uniform vec3 light_position[MAX_LIGHTS];
@@ -26,30 +26,11 @@ in mat3 v_TBN;
 
 out vec4 out_color;
 
-float calculate_shadow(vec4 l_pos) {
-	vec3 proj_coords = l_pos.xyz / l_pos.w;
-	proj_coords = proj_coords * 0.5 + 0.5;
-
-	float bias = 0.00001;
-	float current_depth = proj_coords.z;
-
-	float shadow = 0.0;
-	vec2 texel_size = 1.0 / textureSize(shadow_map, 0);
-	for(int x = -1; x <= 1; ++x) {
-		for(int y = -1; y <= 1; ++y) {
-			float pcf_depth = texture(shadow_map, proj_coords.xy + vec2(x, y) * texel_size).r;
-			shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
-		}
-	}
-
-	return shadow /= 9.0;
-}
-
 float distribution_ggx(vec3 N, vec3 H, float a) {
 	float a2     = pow(a, 2.0);
 	float NdotH2 = pow(max(dot(N, H), 0.0), 2.0);
 
-	float denom = pow(NdotH2 * (a2 - 1) + 1, 2.0) * M_PI;
+	float denom = pow(NdotH2 * (a2 - 1) + 1, 2.0) * PI;
 
 	return a2 / denom;
 }
@@ -70,8 +51,7 @@ float geometry_smith(vec3 N, vec3 V, vec3 L, float k) {
 	return ggx1 * ggx2;
 }
 
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
-{
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
@@ -95,7 +75,7 @@ vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metal
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metalness;
 
-	return (kD * albedo / M_PI + specular) * radiance * NdotL;
+	return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
 void main() {
@@ -116,7 +96,7 @@ void main() {
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metalness);
 
-	float shadow = calculate_shadow(vl_position);
+	float shadow = shadow_visilibity_pcf(shadow_map, vl_position);
 
 	vec3 direct = vec3(0.0);
 	for(int i = 0; i < min(1, num_lights); i++) {

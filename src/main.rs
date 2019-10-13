@@ -21,7 +21,7 @@ struct ImGuiState {
 }
 
 fn main() {
-	const WINDOW_TITLE: &str = "Yagibuu Renderer 👻";
+	const WINDOW_TITLE: &str = "Potato Renderer 🥟";
 	let (width, height) = (1280, 720);
 
 	let logical_size = glutin::dpi::LogicalSize::from((width, height));

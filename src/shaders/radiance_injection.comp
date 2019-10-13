@@ -7,41 +7,50 @@ layout (binding = 0) uniform sampler3D u_voxel_albedo;
 layout (binding = 1) uniform sampler3D u_voxel_normal;
 layout (binding = 2) uniform sampler3D u_voxel_emission;
 layout (binding = 3, rgba8) uniform image3D u_voxel_radiance;
-
 layout (binding = 4) uniform sampler2D u_shadow_map;
 
-uniform mat4 light_matrix;
+uniform mat4 u_light_matrix;
 uniform int u_width;
 uniform int u_height;
 uniform int u_depth;
+uniform mat4 u_model;
 
-// vec4 direct_lighting(vec3 position, vec3 normal, vec3 albedo)
-// {
-// 	float voxel_size = 2.0 / float(vxgi_options.dimension);
-// 	position = position + normal * voxel_size; // move position forward to avoid shadowing errors
+uniform vec3 u_light_direction;
+uniform vec3 u_light_color;
 
-// 	float visibility = 1.0 - in_sun_shadow(sun.space_matrix * vec4(position, 1.0), normal);
-// 	vec3 light_direction = normalize(sun.position.xyz);
+float shadow_visilibity(sampler2D shadow_map, vec4 l_position) {
+	vec3 proj_coords = l_position.xyz / l_position.w;
+	proj_coords = proj_coords * 0.5 + 0.5;
 
-// 	vec3 weight = normal * normal;
+	float bias = 0.00001;
 
-// 	// calculate directional normal attenuation
-// 	float XdotL = dot(vec3(1.0, 0.0, 0.0), light_direction);
-// 	float YdotL = dot(vec3(0.0, 1.0, 0.0), light_direction);
-// 	float ZdotL = dot(vec3(0.0, 0.0, 1.0), light_direction);
+	float current_depth = -proj_coords.z;
+	float depth = texture(shadow_map, proj_coords.xy).r;
 
-// 	XdotL = normal.x > 0.0 ? max(XdotL, 0.0) : max(-XdotL, 0.0);
-// 	YdotL = normal.y > 0.0 ? max(YdotL, 0.0) : max(-YdotL, 0.0);
-// 	ZdotL = normal.z > 0.0 ? max(ZdotL, 0.0) : max(-ZdotL, 0.0);
+	return current_depth < depth ? 1.0 : 0.0;
+}
 
-// 	// voxel shading average from all front sides
-// 	float NdotL = XdotL * weight.x + YdotL * weight.y + ZdotL * weight.z;
+vec4 direct_lighting(vec3 position, vec3 normal, vec3 albedo) {
+	vec4 l_position = u_light_matrix * vec4(position, 1.0);
+	float visibility = 1.0 - shadow_visilibity(u_shadow_map, l_position);
+	vec3 light_direction = normalize(u_light_direction);
 
-// 	vec3 diffuse = vec3(sun.diffuse);
-// 	vec3 radiance = diffuse * albedo * NdotL * visibility;
+	// calculate directional normal attenuation
+	float XdotL = dot(vec3(1.0, 0.0, 0.0), light_direction);
+	float YdotL = dot(vec3(0.0, 1.0, 0.0), light_direction);
+	float ZdotL = dot(vec3(0.0, 0.0, 1.0), light_direction);
 
-// 	return vec4(radiance, visibility);
-// }
+	XdotL = normal.x > 0.0 ? max(XdotL, 0.0) : max(-XdotL, 0.0);
+	YdotL = normal.y > 0.0 ? max(YdotL, 0.0) : max(-YdotL, 0.0);
+	ZdotL = normal.z > 0.0 ? max(ZdotL, 0.0) : max(-ZdotL, 0.0);
+
+	vec3 weight = normal * normal;
+	float NdotL = XdotL * weight.x + YdotL * weight.y + ZdotL * weight.z;
+
+	vec3 radiance = u_light_color * albedo * NdotL * visibility * 0.0001 + vec3(visibility);
+
+	return vec4(radiance, visibility);
+}
 
 const float PI = 3.14159265f;
 const float EPSILON = 1e-30;
@@ -53,8 +62,12 @@ vec3 decode_normal(vec3 normal) {
 void main() {
 	if(any(greaterThan(gl_GlobalInvocationID, vec3(u_width, u_height, u_depth))))
 		return;
+	float voxel_size = (1.0 / float(u_width));
 
 	ivec3 coordinate = ivec3(gl_GlobalInvocationID);
+	// coordinate.x = u_width - coordinate.x;
+	// coordinate.y = u_height - coordinate.y;
+	// coordinate.z = u_depth - coordinate.z;
 	vec4 albedo = texelFetch(u_voxel_albedo, coordinate, 0);
 
 	if(albedo.a < EPSILON)
@@ -69,12 +82,13 @@ void main() {
 	if(any(greaterThan(albedo.rgb, vec3(0.0)))) {
 		// obtain world-space position of the current voxel
 		vec3 position = vec3(coordinate) / vec3(u_width, u_height, u_depth);
-		vec3 position_ws = position * 2.0 - 1.0;
+		// vec3 w_position = position * 2.0 - 1.0;
+		vec3 w_position = vec3(u_model * vec4(coordinate, 1.0)) + position * 0.0001;
 
 		// calculate direct lighting onto voxel
-		// albedo = direct_lighting(position_ws, normal, albedo.rgb);
-		albedo = albedo.rgba;
+		vec4 radiance = direct_lighting(w_position, normal, albedo.rgb);
 
-		imageStore(u_voxel_radiance, coordinate, vec4(albedo.rgb, 1.0));
+		imageStore(u_voxel_radiance, coordinate, vec4(radiance.rgb * 0.001 + emission, 1.0));
+		// imageStore(u_voxel_radiance, coordinate, vec4(radiance.rgb * 0.001 + position, 1.0));
 	}
 }

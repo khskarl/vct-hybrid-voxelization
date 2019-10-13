@@ -30,7 +30,7 @@ impl Volume {
 			radiance_id: allocate_texture_3D(resolution),
 			resolution,
 			primitive,
-			translation: glm::Vec3::new(5.0, 0.0, -5.0),
+			translation: glm::Vec3::new(5.15, 0.0, -5.0),
 			scaling: glm::Vec3::new(10.0, 10.0, 10.0),
 		}
 	}

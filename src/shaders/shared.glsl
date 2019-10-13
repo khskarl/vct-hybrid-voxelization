@@ -65,3 +65,36 @@ void image_average_rgba8(layout(r32ui) volatile coherent restrict uimage3D img, 
 		next_val = packUnorm4x8(vec4(average, (count + 1) / 255.0f));
 	}
 }
+
+float shadow_visilibity(sampler2D shadow_map, vec4 light_pos) {
+	vec3 proj_coords = light_pos.xyz / light_pos.w;
+	proj_coords = proj_coords * 0.5 + 0.5;
+
+	float bias = 0.00001;
+	float current_depth = proj_coords.z;
+
+	float shadow = 0.0;
+	float pcf_depth = texture(shadow_map, proj_coords.xy).r;
+	shadow = current_depth - bias > pcf_depth ? 1.0 : 0.0;
+
+	return shadow /= (13.0 * 13.0);
+}
+
+float shadow_visilibity_pcf(sampler2D shadow_map, vec4 light_pos) {
+	vec3 proj_coords = light_pos.xyz / light_pos.w;
+	proj_coords = proj_coords * 0.5 + 0.5;
+
+	float bias = 0.00001;
+	float current_depth = proj_coords.z;
+
+	float shadow = 0.0;
+	vec2 texel_size = 1.0 / textureSize(shadow_map, 0);
+	for(int x = -6; x <= 6; ++x) {
+		for(int y = -6; y <= 6; ++y) {
+			float pcf_depth = texture(shadow_map, proj_coords.xy + vec2(x, y) * texel_size).r;
+			shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
+		}
+	}
+
+	return shadow /= (13.0 * 13.0);
+}

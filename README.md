@@ -1,5 +1,5 @@
-# YAGIBUU - Yet Another Global Illumination But Ultimately Ugly
-YAGIBUU is an overly bootstrapped PBR renderer with a Voxel Cone Tracing implementation stuck inside of it, on in other words: held hostage by the dark powers of deadlines and ad-hoc improvised solutions.
+# Potato - Yet Another Global Illumination But Ultimately Ugly
+Potato is an overly bootstrapped PBR renderer with a Voxel Cone Tracing implementation stuck inside of it, on in other words: held hostage by the dark powers of deadlines and ad-hoc improvised solutions.
 
 This project is my thesis implementation, whose sole purpose is to compare two voxelization algorithms for achieving real-time GI through Cone Tracing.
 Initially this project was using Rendy for the rendering, but a combination of unforeseen life events and mismanagement led to a major rewrite and an even shorter deadline.

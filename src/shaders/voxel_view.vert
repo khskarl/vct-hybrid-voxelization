@@ -19,11 +19,11 @@ void main() {
 	uint j = (gl_VertexID / resolution) % resolution;
 	uint k = (gl_VertexID / resolution / resolution) % resolution;
 
-	ivec3 texel_position = ivec3(i, j, k) + ivec3(aPosition);
+	ivec3 texel_position = ivec3(i, j, k) + ivec3(aPosition * 0.0001);
 	vec4 color = texelFetch(volume, texel_position, 0);
 	// color.xyz += vec3((1.0 * gl_VertexID) / (resolution * resolution * resolution) * 1.0);
 	// color.a = 1.0;
-	gl_Position = mvp * vec4(texel_position * voxel_size + vec3(voxel_size / 2.0), 1.0);
+	gl_Position = mvp * vec4(texel_position * voxel_size, 1.0);
 
 	v_out.position = gl_Position;
 	v_out.w_position = texel_position;

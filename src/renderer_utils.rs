@@ -27,6 +27,10 @@ pub fn load_pbr_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/pbr.vert").expect(VERTEX_EXPECT);
 	let fs_src = fs::read_to_string("src/shaders/pbr.frag").expect(FRAGMENT_EXPECT);
 
+	let context = load_shared_glsl_context();
+	let vs_src = context.expand(vs_src).expect(EXPAND_EXPECT);
+	let fs_src = context.expand(fs_src).expect(EXPAND_EXPECT);
+
 	GLProgram::new(&vs_src[..], &fs_src[..])
 }
 
@@ -101,8 +105,8 @@ pub fn load_texture(texture: &Texture) -> GLTexture {
 
 pub fn load_depth_texture() -> GLTexture {
 	GLTexture::new_null_2d(
-		2048,
-		2048,
+		1024,
+		1024,
 		InternalFormat::DepthComponent24,
 		DataFormat::DepthComponent,
 		DataKind::Float,
