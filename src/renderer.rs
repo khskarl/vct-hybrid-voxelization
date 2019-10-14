@@ -290,7 +290,7 @@ impl Renderer {
 
 			let mat = &primitive.material();
 			self
-				.pbr_program
+				.voxelize_program
 				.get_uniform("albedo_map")
 				.set_sampler_2d(&mat.albedo(), 0);
 
@@ -375,6 +375,21 @@ impl Renderer {
 			.get_uniform("shadow_map")
 			.set_sampler_2d(&self.depth_map, 4);
 
+		program
+			.get_uniform("u_width")
+			.set_1i(self.volume_scene.resolution() as i32);
+		self.volume_scene.bind_texture_radiance(5);
+
+		let position = self.volume_scene.translation().clone();
+		let scale = self.volume_scene.scaling().clone();
+
+		program
+			.get_uniform("u_volume_center")
+			.set_3f(1, &position.into());
+		program
+			.get_uniform("u_volume_scale")
+			.set_3f(1, &scale.into());
+
 		//
 		let (directions, positions, colors) = lights_to_soa(&self.lights);
 		program
@@ -395,7 +410,7 @@ impl Renderer {
 		self
 			.pbr_program
 			.get_uniform("camera_position")
-			.set_3f(0, &camera.position.into());
+			.set_3f(1, &camera.position.into());
 
 		for primitive in &self.primitives {
 			primitive.bind();

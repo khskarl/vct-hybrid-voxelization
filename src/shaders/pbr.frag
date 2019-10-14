@@ -13,11 +13,16 @@ uniform int num_lights;
 uniform float time;
 uniform vec3 camera_position;
 
+uniform vec3 u_volume_center;
+uniform vec3 u_volume_scale;
+uniform int u_width;
+
 uniform sampler2D albedo_map;
 uniform sampler2D metaghness_map;
 uniform sampler2D normal_map;
 uniform sampler2D occlusion_map;
 uniform sampler2D shadow_map;
+uniform layout(binding = 5) sampler3D u_radiance;
 
 in vec3 vw_position;
 in vec2 v_uv;
@@ -55,6 +60,27 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+// vec4 traceCone(sampler3D voxelTexture, vec3 position, vec3 normal, vec3 direction, int steps, float bias, float coneAngle, float coneHeight, float lodOffset) {
+// 	vec3 color = vec3(0);
+// 	float alpha = 0;
+// 	float scale = 1.0 / voxelDim;
+// 	vec3 start = position + bias * normal * scale;
+
+// 	for (int i = 0; i < steps && alpha < 0.95; i++) {
+// 		float coneRadius = coneHeight * tan(coneAngle / 2.0);
+// 		float lod = log2(max (1.0 , 2 * coneRadius ));
+// 		vec3 samplePosition = start + coneHeight * direction * scale;
+
+// 		vec4 sampleColor = textureLod(voxelTexture , samplePosition, lod + lodOffset);
+// 		float a = 1 - alpha;
+// 		color += sampleColor.rgb * a;
+// 		alpha += a * sampleColor.a;
+// 		coneHeight += coneRadius;
+// 	}
+
+// 	return vec4(color , alpha);
+// }
+
 vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metalness, vec3 normal, float occlusion, vec3 V, vec3 F0) {
 	vec3 L = -normalize(Li);
 	vec3 H = normalize(V + L);
@@ -77,6 +103,29 @@ vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metal
 
 	return (kD * albedo / PI + specular) * radiance * NdotL;
 }
+
+
+vec3 radiance_coordinate(vec3 w_position) {
+	vec3 volume_corner = u_volume_center - u_volume_scale * 0.505;
+	// return ((w_position + u_volume_center) * 6.4) / vec3(64.0);
+	// return (w_position + u_volume_center) / vec3(64.0);
+	return (((w_position - volume_corner) / (u_volume_scale)));
+}
+
+ivec3 coordinate(vec3 w_position) {
+	vec3 volume_corner = u_volume_center - u_volume_scale * 0.5;
+	// return ((w_position + u_volume_center) * 6.4) / vec3(64.0);
+	// return (w_position + u_volume_center) / vec3(64.0);
+	return ivec3((((w_position - volume_corner) / u_volume_scale) * (u_width - 0.01)));
+}
+
+// vec3 radiance_coordinate(vec3 w_position) {
+// 	return (coordinate) / vec3(u_width);
+// }
+
+// vec3 texture_3D_coordinate(vec3 w_position) {
+// 	return ((w_position + vec3(5.0, 0.0, 5.0)) * 6.4) / vec3(64.0);
+// }
 
 void main() {
 
@@ -133,7 +182,10 @@ void main() {
 
 		direct += radiance / attenuation;
 	}
+	vec3 coordinate = radiance_coordinate(vw_position);
+	vec3 radiance = texture(u_radiance, coordinate).rgb;
+	// vec3 radiance = texelFetch(u_radiance, coordinate, 0).rgb;
 	vec3 ambient = albedo * vec3(0.1, 0.07, 0.05) * 0.2 * occlusion;
-	vec3 color = (direct + ambient);
+	vec3 color = (direct + ambient) * u_width * 0.0001 + radiance;
 	out_color = vec4(color, 1.0);
 }

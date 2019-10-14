@@ -205,9 +205,9 @@ pub fn allocate_texture_3D(resolution: usize) -> u32 {
 	unsafe {
 		GenTextures(1, &mut handle);
 		BindTexture(TEXTURE_3D, handle);
-		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_S, CLAMP_TO_BORDER as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_T, CLAMP_TO_BORDER as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_R, CLAMP_TO_BORDER as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_R, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
 
