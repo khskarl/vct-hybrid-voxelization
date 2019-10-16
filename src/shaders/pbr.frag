@@ -15,7 +15,6 @@ uniform vec3 camera_position;
 
 uniform vec3 u_volume_center;
 uniform vec3 u_volume_scale;
-uniform int u_width;
 
 uniform sampler2D albedo_map;
 uniform sampler2D metaghness_map;
@@ -60,26 +59,74 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-// vec4 traceCone(sampler3D voxelTexture, vec3 position, vec3 normal, vec3 direction, int steps, float bias, float coneAngle, float coneHeight, float lodOffset) {
-// 	vec3 color = vec3(0);
-// 	float alpha = 0;
-// 	float scale = 1.0 / voxelDim;
-// 	vec3 start = position + bias * normal * scale;
+const vec3 propagationDirections[] = {
+	vec3(0.0f, 1.0f, 0.0f),
+	vec3(0.0f, 0.5f, 0.866025f),
+	vec3(0.754996f, 0.5f, -0.4330128f),
+	vec3(-0.754996f, 0.5f, -0.4330128f)
+};
 
-// 	for (int i = 0; i < steps && alpha < 0.95; i++) {
-// 		float coneRadius = coneHeight * tan(coneAngle / 2.0);
-// 		float lod = log2(max (1.0 , 2 * coneRadius ));
-// 		vec3 samplePosition = start + coneHeight * direction * scale;
+const float diffuseConeWeights[] = {
+	PI / 3.0f,
+	2.0f * PI / 9.0f,
+	2.0f * PI / 9.0f,
+	2.0f * PI / 9.0f,
+};
 
-// 		vec4 sampleColor = textureLod(voxelTexture , samplePosition, lod + lodOffset);
-// 		float a = 1 - alpha;
-// 		color += sampleColor.rgb * a;
-// 		alpha += a * sampleColor.a;
-// 		coneHeight += coneRadius;
-// 	}
+vec3 radiance_coordinate(vec3 w_position) {
+	vec3 volume_corner = u_volume_center - u_volume_scale * 0.505;
+	return (((w_position - volume_corner) / (u_volume_scale)));
+}
 
-// 	return vec4(color , alpha);
-// }
+const float voxel_half_extent = 2.0;
+const float voxel_half_extent_inv = 1.0 / voxel_half_extent;
+const float MAX_DIST = 20.0;
+const float	SQRT2 = 1.41421356237309504880;
+// voxels:			3D Texture containing voxel scene with direct diffuse lighting (or direct + secondary indirect bounce)
+// P:				world-space position of receiving surface
+// N:				world-space normal vector of receiving surface
+// coneDirection:	world-space cone direction in the direction to perform the trace
+// coneAperture:	tan(coneHalfAngle)
+vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAperture) {
+	// We need to offset the cone start position to avoid sampling its own voxel (self-occlusion):
+	//	Unfortunately, it will result in disconnection between nearby surfaces :(
+	vec3 offset = N * voxel_half_extent * 1.0 * SQRT2;
+	vec3 startPos = P + offset; // sqrt2 is diagonal voxel half-extent
+
+	// We will break off the loop if the sampling distance is too far for performance reasons:
+	const float maxDistance = MAX_DIST * voxel_half_extent;
+	vec3 color = vec3(0.0);
+	float alpha = 0.0;
+	float curr_dist = voxel_half_extent;
+	while (curr_dist < maxDistance && alpha < 1) {
+		float diameter = max(voxel_half_extent, 2 * coneAperture * curr_dist);
+		float mip = log2(diameter * voxel_half_extent_inv);
+
+		// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
+		//	todo: optimization could be doing ray-marching in texture space
+		vec3 tc = startPos + coneDirection * curr_dist;
+		tc = radiance_coordinate(tc);
+		// tc = (tc - u_volume_center) * voxel_half_extent_inv;
+		// tc *= 1.0 / u_width;
+		// tc = tc * vec3(0.5f, -0.5f, 0.5f) + 0.5f;
+
+		// break if the ray exits the voxel grid, or we sample from the last mip:
+		if (mip >= 9)
+			break;
+
+		// float4 sam = voxels.SampleLevel(sampler_linear_clamp, tc, mip);
+		vec4 radiance = texture(voxels, tc, mip);
+
+		float a = 1 - alpha;
+		color += a * radiance.rgb;
+		alpha += a * radiance.a;
+
+		// step along ray:
+		curr_dist += diameter * 0.05;
+	}
+
+	return vec4(color, alpha);
+}
 
 vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metalness, vec3 normal, float occlusion, vec3 V, vec3 F0) {
 	vec3 L = -normalize(Li);
@@ -104,28 +151,6 @@ vec3 direct_lighting(vec3 Li, vec3 Lc, vec3 albedo, float roughness, float metal
 	return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
-
-vec3 radiance_coordinate(vec3 w_position) {
-	vec3 volume_corner = u_volume_center - u_volume_scale * 0.505;
-	// return ((w_position + u_volume_center) * 6.4) / vec3(64.0);
-	// return (w_position + u_volume_center) / vec3(64.0);
-	return (((w_position - volume_corner) / (u_volume_scale)));
-}
-
-ivec3 coordinate(vec3 w_position) {
-	vec3 volume_corner = u_volume_center - u_volume_scale * 0.5;
-	// return ((w_position + u_volume_center) * 6.4) / vec3(64.0);
-	// return (w_position + u_volume_center) / vec3(64.0);
-	return ivec3((((w_position - volume_corner) / u_volume_scale) * (u_width - 0.01)));
-}
-
-// vec3 radiance_coordinate(vec3 w_position) {
-// 	return (coordinate) / vec3(u_width);
-// }
-
-// vec3 texture_3D_coordinate(vec3 w_position) {
-// 	return ((w_position + vec3(5.0, 0.0, 5.0)) * 6.4) / vec3(64.0);
-// }
 
 void main() {
 
@@ -183,9 +208,11 @@ void main() {
 		direct += radiance / attenuation;
 	}
 	vec3 coordinate = radiance_coordinate(vw_position);
-	vec3 radiance = texture(u_radiance, coordinate).rgb;
+	vec3 cone_dir = normalize(v_TBN * vec3(0.0, 0.0, 1.0));
+	vec4 radiance = ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
+
 	// vec3 radiance = texelFetch(u_radiance, coordinate, 0).rgb;
 	vec3 ambient = albedo * vec3(0.1, 0.07, 0.05) * 0.2 * occlusion;
-	vec3 color = (direct + ambient) * u_width * 0.0001 + radiance;
+	vec3 color = (direct + ambient) * 0.0001 + radiance.rgb;
 	out_color = vec4(color, 1.0);
 }

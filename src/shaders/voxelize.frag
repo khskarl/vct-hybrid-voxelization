@@ -33,7 +33,7 @@ void main() {
 	image_average_rgba8(u_voxel_normal, position, normal);
 	vec3 emission = vec3(1.0) - normal.yyy;
 	if(emission.y < 0.95) {
-		// emission.rgb = vec3(0.0);
+		emission.rgb = vec3(0.0);
 	}
 
 	image_average_rgba8(u_voxel_emission, position, emission * (vec3(position) / u_width));
