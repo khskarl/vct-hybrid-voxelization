@@ -78,7 +78,8 @@ vec3 radiance_coordinate(vec3 w_position) {
 	return (((w_position - volume_corner) / (u_volume_scale)));
 }
 
-const float voxel_half_extent = 2.0;
+// TODO Correct calculation of voxel's half extent
+const float voxel_half_extent = 0.8;
 const float voxel_half_extent_inv = 1.0 / voxel_half_extent;
 const float MAX_DIST = 20.0;
 const float	SQRT2 = 1.41421356237309504880;
@@ -98,7 +99,7 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAp
 	vec3 color = vec3(0.0);
 	float alpha = 0.0;
 	float curr_dist = voxel_half_extent;
-	while (curr_dist < maxDistance && alpha < 1) {
+	while (curr_dist < maxDistance && alpha < 1.0) {
 		float diameter = max(voxel_half_extent, 2 * coneAperture * curr_dist);
 		float mip = log2(diameter * voxel_half_extent_inv);
 
@@ -106,9 +107,6 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAp
 		//	todo: optimization could be doing ray-marching in texture space
 		vec3 tc = startPos + coneDirection * curr_dist;
 		tc = radiance_coordinate(tc);
-		// tc = (tc - u_volume_center) * voxel_half_extent_inv;
-		// tc *= 1.0 / u_width;
-		// tc = tc * vec3(0.5f, -0.5f, 0.5f) + 0.5f;
 
 		// break if the ray exits the voxel grid, or we sample from the last mip:
 		if (mip >= 9)
@@ -121,7 +119,6 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAp
 		color += a * radiance.rgb;
 		alpha += a * radiance.a;
 
-		// step along ray:
 		curr_dist += diameter * 0.05;
 	}
 
