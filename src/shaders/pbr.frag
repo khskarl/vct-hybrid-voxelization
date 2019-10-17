@@ -60,10 +60,10 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 }
 
 const vec3 propagationDirections[] = {
-	vec3(0.0f, 1.0f, 0.0f),
-	vec3(0.0f, 0.5f, 0.866025f),
-	vec3(0.754996f, 0.5f, -0.4330128f),
-	vec3(-0.754996f, 0.5f, -0.4330128f)
+	vec3(0.0, 0.0, 1.0),
+	vec3(0.866025, 0.0, 0.5),
+	vec3(-0.4330128, 0.754996, 0.5),
+	vec3(-0.4330128, -0.754996, 0.5)
 };
 
 const float diffuseConeWeights[] = {
@@ -112,7 +112,6 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAp
 		if (mip >= 9)
 			break;
 
-		// float4 sam = voxels.SampleLevel(sampler_linear_clamp, tc, mip);
 		vec4 radiance = texture(voxels, tc, mip);
 
 		float a = 1 - alpha;
@@ -205,11 +204,16 @@ void main() {
 		direct += radiance / attenuation;
 	}
 	vec3 coordinate = radiance_coordinate(vw_position);
-	vec3 cone_dir = normalize(v_TBN * vec3(0.0, 0.0, 1.0));
-	vec4 radiance = ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
 
+	vec4 radiance = vec4(0.0);
+	for(int i = 0; i < 4; i++) {
+		vec3 cone_dir = normalize(v_TBN * propagationDirections[i]);
+		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
+	}
+	radiance /= 4.0;
 	// vec3 radiance = texelFetch(u_radiance, coordinate, 0).rgb;
-	vec3 ambient = albedo * vec3(0.1, 0.07, 0.05) * 0.2 * occlusion;
-	vec3 color = (direct + ambient) * 0.0001 + radiance.rgb;
+	vec3 ambient_radiance = radiance.rgb + vec3(0.1, 0.07, 0.05) * 0.2;
+	vec3 ambient = albedo * ambient_radiance * occlusion;
+	vec3 color = (direct + ambient);
 	out_color = vec4(color, 1.0);
 }
