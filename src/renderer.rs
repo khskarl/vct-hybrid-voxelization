@@ -375,6 +375,9 @@ impl Renderer {
 			.get_uniform("shadow_map")
 			.set_sampler_2d(&self.depth_map, 4);
 
+		program
+			.get_uniform("u_width")
+			.set_1i(self.volume_scene.resolution() as i32);
 		self.volume_scene.bind_texture_radiance(5);
 
 		let position = self.volume_scene.translation().clone();

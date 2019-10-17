@@ -15,6 +15,7 @@ uniform vec3 camera_position;
 
 uniform vec3 u_volume_center;
 uniform vec3 u_volume_scale;
+uniform int u_width;
 
 uniform sampler2D albedo_map;
 uniform sampler2D metaghness_map;
@@ -61,16 +62,9 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 
 const vec3 propagationDirections[] = {
 	vec3(0.0, 0.0, 1.0),
-	vec3(0.866025, 0.0, 0.5),
-	vec3(-0.4330128, 0.754996, 0.5),
-	vec3(-0.4330128, -0.754996, 0.5)
-};
-
-const float diffuseConeWeights[] = {
-	PI / 3.0f,
-	2.0f * PI / 9.0f,
-	2.0f * PI / 9.0f,
-	2.0f * PI / 9.0f,
+	vec3(0.0, 0.866025, 0.5),
+	vec3(0.754996, -0.4330128, 0.5),
+	vec3(-0.754996, -0.4330128, 0.5)
 };
 
 vec3 radiance_coordinate(vec3 w_position) {
@@ -78,47 +72,34 @@ vec3 radiance_coordinate(vec3 w_position) {
 	return (((w_position - volume_corner) / (u_volume_scale)));
 }
 
-// TODO Correct calculation of voxel's half extent
-const float voxel_half_extent = 0.8;
-const float voxel_half_extent_inv = 1.0 / voxel_half_extent;
-const float MAX_DIST = 20.0;
-const float	SQRT2 = 1.41421356237309504880;
-// voxels:			3D Texture containing voxel scene with direct diffuse lighting (or direct + secondary indirect bounce)
-// P:				world-space position of receiving surface
-// N:				world-space normal vector of receiving surface
-// coneDirection:	world-space cone direction in the direction to perform the trace
-// coneAperture:	tan(coneHalfAngle)
-vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 coneDirection, float coneAperture) {
-	// We need to offset the cone start position to avoid sampling its own voxel (self-occlusion):
-	//	Unfortunately, it will result in disconnection between nearby surfaces :(
-	vec3 offset = N * voxel_half_extent * 1.0 * SQRT2;
-	vec3 startPos = P + offset; // sqrt2 is diagonal voxel half-extent
+vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 direction, float aperture) {
+	// const float voxel_size = (u_volume_scale.x / float(u_width));
+	const float voxel_size = 0.8 + u_width * 0.001;
+	const float MAX_DIST = 20.0;
+	vec3 offset = N * voxel_size;
+	vec3 origin = P + offset;
 
-	// We will break off the loop if the sampling distance is too far for performance reasons:
-	const float maxDistance = MAX_DIST * voxel_half_extent;
+	const float maxDistance = MAX_DIST * voxel_size;
 	vec3 color = vec3(0.0);
 	float alpha = 0.0;
-	float curr_dist = voxel_half_extent;
-	while (curr_dist < maxDistance && alpha < 1.0) {
-		float diameter = max(voxel_half_extent, 2 * coneAperture * curr_dist);
-		float mip = log2(diameter * voxel_half_extent_inv);
+	float t = 2.0 * voxel_size;
+	while (t < maxDistance && alpha < 1.0) {
+		float diameter = max(voxel_size, 2 * aperture * t);
+		float mip = log2(diameter / voxel_size);
 
-		// Because we do the ray-marching in world space, we need to remap into 3d texture space before sampling:
-		//	todo: optimization could be doing ray-marching in texture space
-		vec3 tc = startPos + coneDirection * curr_dist;
-		tc = radiance_coordinate(tc);
+		vec3 position = origin + direction * t;
+		position = radiance_coordinate(position);
 
-		// break if the ray exits the voxel grid, or we sample from the last mip:
 		if (mip >= 9)
 			break;
 
-		vec4 radiance = texture(voxels, tc, mip);
+		vec4 radiance = texture(voxels, position, mip);
 
 		float a = 1 - alpha;
 		color += a * radiance.rgb;
 		alpha += a * radiance.a;
 
-		curr_dist += diameter * 0.05;
+		t += diameter * 0.15;
 	}
 
 	return vec4(color, alpha);
@@ -208,7 +189,7 @@ void main() {
 	vec4 radiance = vec4(0.0);
 	for(int i = 0; i < 4; i++) {
 		vec3 cone_dir = normalize(v_TBN * propagationDirections[i]);
-		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
+		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.23));
 	}
 	radiance /= 4.0;
 	// vec3 radiance = texelFetch(u_radiance, coordinate, 0).rgb;
