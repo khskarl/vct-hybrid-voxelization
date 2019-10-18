@@ -62,6 +62,19 @@ pub fn load_voxelize_program() -> GLProgram {
 	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
 }
 
+pub fn load_classify_program() -> GLProgram {
+	let vs_src = fs::read_to_string("src/shaders/classify.vert").expect(VERTEX_EXPECT);
+	let gs_src = fs::read_to_string("src/shaders/classify.geom").expect(GEOMETRY_EXPECT);
+	let fs_src = fs::read_to_string("src/shaders/classify.frag").expect(FRAGMENT_EXPECT);
+
+	let context = load_shared_glsl_context();
+	let vs_src = context.expand(vs_src).expect(EXPAND_EXPECT);
+	let gs_src = context.expand(gs_src).expect(EXPAND_EXPECT);
+	let fs_src = context.expand(fs_src).expect(EXPAND_EXPECT);
+
+	GLProgram::new_gs(&vs_src[..], &gs_src[..], &fs_src[..])
+}
+
 pub fn load_bounds_program() -> GLProgram {
 	let vs_src = fs::read_to_string("src/shaders/volume_bounds.vert").expect(VERTEX_EXPECT);
 	let fs_src = fs::read_to_string("src/shaders/volume_bounds.frag").expect(FRAGMENT_EXPECT);
@@ -190,4 +203,33 @@ pub fn light_matrix(light: &Light) -> [f32; 16] {
 	};
 
 	light_matrix
+}
+
+use crate::textures::Volume;
+
+pub fn voxelization_pv(volume: &Volume) -> [f32; 16] {
+	let half_width = volume.scaling().x as f32 / 2.0;
+	let half_height = volume.scaling().y as f32 / 2.0;
+	let depth = volume.scaling().z;
+	let proj = glm::ortho_rh(
+		-half_width,
+		half_width + 0.1,
+		-half_height,
+		half_height + 0.1,
+		depth,
+		0.0,
+	);
+	let position = volume.translation() + glm::vec3(0.0, 0.0, volume.scaling()[2] * 0.5);
+	let view = glm::look_at_rh(
+		&position,
+		&(position + glm::vec3(0.0, 0.0, -1.0)),
+		&[0.0, 1.0, 0.0].into(),
+	);
+	let pv: [f32; 16] = {
+		let proj_view = proj * view;
+		let transmute_me: [[f32; 4]; 4] = proj_view.into();
+		unsafe { std::mem::transmute(transmute_me) }
+	};
+
+	pv
 }

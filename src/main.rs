@@ -199,37 +199,50 @@ fn main() {
 								Cow::from(im_str!("{}x{}x{}", x, x, x))
 							});
 							*volume.resolution_mut() = items[*index];
+							ui.separator();
 
 							ui.radio_button(
 								im_str!("Albedo"),
-								renderer.rendering_mode_mut(),
+								&mut renderer.rendering_mode,
 								RenderingMode::Albedo,
 							);
 							ui.same_line(100.0);
 
 							ui.radio_button(
 								im_str!("Normal"),
-								renderer.rendering_mode_mut(),
+								&mut renderer.rendering_mode,
 								RenderingMode::Normal,
 							);
 							ui.same_line(200.0);
 
 							ui.radio_button(
 								im_str!("Emission"),
-								renderer.rendering_mode_mut(),
+								&mut renderer.rendering_mode,
 								RenderingMode::Emission,
 							);
 							ui.radio_button(
 								im_str!("Radiance"),
-								renderer.rendering_mode_mut(),
+								&mut renderer.rendering_mode,
 								RenderingMode::Radiance,
 							);
 							ui.same_line(100.0);
 
 							ui.radio_button(
 								im_str!("None"),
-								renderer.rendering_mode_mut(),
+								&mut renderer.rendering_mode,
 								RenderingMode::Scene,
+							);
+							ui.separator();
+							ui.radio_button(
+								im_str!("Fragment"),
+								&mut renderer.voxelization_mode,
+								VoxelizationMode::FragmentOnly,
+							);
+							ui.same_line(100.0);
+							ui.radio_button(
+								im_str!("Hybrid"),
+								&mut renderer.voxelization_mode,
+								VoxelizationMode::Hybrid,
 							);
 						});
 

@@ -24,9 +24,16 @@ pub enum RenderingMode {
 	Radiance,
 }
 
+#[derive(Copy, Clone, PartialEq)]
+pub enum VoxelizationMode {
+	FragmentOnly,
+	Hybrid,
+}
+
 pub struct Renderer {
 	viewport_size: (usize, usize),
-	rendering_mode: RenderingMode,
+	pub rendering_mode: RenderingMode,
+	pub voxelization_mode: VoxelizationMode,
 	primitives: Vec<GpuPrimitive>,
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
@@ -38,6 +45,7 @@ pub struct Renderer {
 	volume_view_program: GLProgram,
 	volume_scene: Volume,
 	voxelize_program: GLProgram,
+	classify_program: GLProgram,
 	bounds_program: GLProgram,
 	clear_program: GLProgram,
 	inject_program: GLProgram,
@@ -67,7 +75,8 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Radiance,
+			rendering_mode: RenderingMode::Albedo,
+			voxelization_mode: VoxelizationMode::Hybrid,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -79,6 +88,7 @@ impl Renderer {
 			volume_view_program,
 			volume_scene,
 			voxelize_program: load_voxelize_program(),
+			classify_program: load_classify_program(),
 			bounds_program: load_bounds_program(),
 			clear_program: load_clear_program(),
 			inject_program: load_radiance_injection_program(),
@@ -125,18 +135,6 @@ impl Renderer {
 		self.volume_scene.bind_texture_emission(2);
 		self.volume_scene.bind_texture_radiance(3);
 
-		self
-			.clear_program
-			.get_uniform("u_width")
-			.set_1i(self.volume_scene.resolution() as i32);
-		self
-			.clear_program
-			.get_uniform("u_height")
-			.set_1i(self.volume_scene.resolution() as i32);
-		self
-			.clear_program
-			.get_uniform("u_depth")
-			.set_1i(self.volume_scene.resolution() as i32);
 		self.volume_scene.draw();
 	}
 
@@ -231,6 +229,68 @@ impl Renderer {
 	}
 
 	fn voxelize(&self) {
+		match self.voxelization_mode {
+			VoxelizationMode::FragmentOnly => self.voxelize_fragment(),
+			VoxelizationMode::Hybrid => self.voxelize_hybrid(),
+		}
+	}
+
+	fn voxelize_hybrid(&self) {
+		self.clear_volume();
+
+		let width = self.volume_scene.resolution() as i32;
+		let height = self.volume_scene.resolution() as i32;
+		let depth = self.volume_scene.resolution() as i32;
+
+		gl_set_depth_write(false);
+		gl_set_cull_face(CullFace::None);
+		gl_set_viewport(0, 0, width as usize, height as usize);
+		gl_clear(true, true, false);
+		unsafe {
+			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
+		};
+
+		self.classify_program.bind();
+		self.classify_program.get_uniform("u_width").set_1i(width);
+		self.classify_program.get_uniform("u_height").set_1i(height);
+		self.classify_program.get_uniform("u_depth").set_1i(depth);
+
+		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
+		self.classify_program.get_uniform("pv").set_mat4f(&pv);
+
+		self.volume_scene.bind_image_albedo(0);
+		self.volume_scene.bind_image_normal(1);
+		self.volume_scene.bind_image_emission(2);
+
+		for primitive in &self.primitives {
+			primitive.bind();
+
+			self
+				.classify_program
+				.get_uniform("model")
+				.set_mat4f(&primitive.model_matrix_raw());
+
+			let mat = &primitive.material();
+			// self
+			// 	.classify_program
+			// 	.get_uniform("albedo_map")
+			// 	.set_sampler_2d(&mat.albedo(), 0);
+
+			gl_draw_elements(
+				DrawMode::Triangles,
+				primitive.count_vertices(),
+				IndexKind::UnsignedInt,
+				0,
+			);
+		}
+
+		unsafe {
+			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
+			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		}
+	}
+
+	fn voxelize_fragment(&self) {
 		self.clear_volume();
 
 		let width = self.volume_scene.resolution() as i32;
@@ -251,29 +311,8 @@ impl Renderer {
 		// self.voxelize_program.get_uniform("u_height").set_1i(height);
 		self.voxelize_program.get_uniform("u_depth").set_1i(depth);
 
-		let half_width = self.volume_scene.scaling().x as f32 / 2.0;
-		let half_height = self.volume_scene.scaling().y as f32 / 2.0;
-		let depth = self.volume_scene.scaling().z;
-		let proj = glm::ortho_rh(
-			-half_width,
-			half_width + 0.1,
-			-half_height,
-			half_height + 0.1,
-			depth,
-			0.0,
-		);
-		let position =
-			self.volume_scene.translation() + glm::vec3(0.0, 0.0, self.volume_scene.scaling()[2] * 0.5);
-		let view = glm::look_at_rh(
-			&position,
-			&(position + glm::vec3(0.0, 0.0, -1.0)),
-			&[0.0, 1.0, 0.0].into(),
-		);
-		let pv: [f32; 16] = {
-			let proj_view = proj * view;
-			let transmute_me: [[f32; 4]; 4] = proj_view.into();
-			unsafe { std::mem::transmute(transmute_me) }
-		};
+		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
+
 		self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
 
 		self.volume_scene.bind_image_albedo(0);
@@ -475,10 +514,6 @@ impl Renderer {
 
 	pub fn primitives_mut(&mut self) -> &mut Vec<GpuPrimitive> {
 		&mut self.primitives
-	}
-
-	pub fn rendering_mode_mut(&mut self) -> &mut RenderingMode {
-		&mut self.rendering_mode
 	}
 
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {

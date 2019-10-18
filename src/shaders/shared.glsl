@@ -21,14 +21,12 @@ vec3 decode_normal(vec3 normal) {
 	return normal * 2.0f - vec3(1.0f);
 }
 
-void discard_if_outside_aabb(vec4 aabb, int resolution) {
+bool is_outside_aabb(vec4 aabb, vec2 coord, int resolution) {
 	vec2 aabb_min = floor((aabb.xy * 0.5 + 0.5) * resolution);
 	vec2 aabb_max = ceil((aabb.zw * 0.5 + 0.5) * resolution);
 
-	if (!(all(greaterThanEqual(gl_FragCoord.xy, aabb_min)) &&
-				all(lessThanEqual(gl_FragCoord.xy, aabb_max)))) {
-		discard;
-	}
+	return !(all(greaterThanEqual(coord.xy, aabb_min)) &&
+					 all(lessThanEqual(coord.xy, aabb_max)));
 }
 
 vec4 rgba8_to_vec4(uint val) {
@@ -96,4 +94,45 @@ float shadow_visilibity_pcf(sampler2D shadow_map, vec4 light_pos) {
 	}
 
 	return shadow /= (13.0 * 13.0);
+}
+
+vec4[3] enlarge_triangle(vec4 s_position[3], ivec3 resolution) {
+	vec2 edge[3] = {
+		s_position[1].xy - s_position[0].xy,
+		s_position[2].xy - s_position[1].xy,
+		s_position[0].xy - s_position[2].xy
+	};
+
+	vec2 edge_normal[3];
+	edge_normal[0] = normalize(edge[0]);
+	edge_normal[1] = normalize(edge[1]);
+	edge_normal[2] = normalize(edge[2]);
+	edge_normal[0] = vec2(-edge_normal[0].y, edge_normal[0].x);
+	edge_normal[1] = vec2(-edge_normal[1].y, edge_normal[1].x);
+	edge_normal[2] = vec2(-edge_normal[2].y, edge_normal[2].x);
+
+	// Flip back facing triangles, otherwise they will shrink instead of grow
+	vec3 a = normalize(s_position[1].xyz - s_position[0].xyz);
+	vec3 b = normalize(s_position[2].xyz - s_position[0].xyz);
+	vec3 clip_space_normal = cross(a, b);
+	if (clip_space_normal.z < 0.0) {
+		edge_normal[0] *= -1.0;
+		edge_normal[1] *= -1.0;
+		edge_normal[2] *= -1.0;
+	}
+
+	vec3 edge_distance;
+	edge_distance.x = dot(edge_normal[0], s_position[0].xy);
+	edge_distance.y = dot(edge_normal[1], s_position[1].xy);
+	edge_distance.z = dot(edge_normal[2], s_position[2].xy);
+
+	float pixel_diagonal = 1.4142135637309 / float(resolution.x);
+	s_position[0].xy = s_position[0].xy - pixel_diagonal * (edge[2] / dot(edge[2], edge_normal[0]) +
+																																		edge[0] / dot(edge[0], edge_normal[2]));
+	s_position[1].xy = s_position[1].xy - pixel_diagonal * (edge[0] / dot(edge[0], edge_normal[1]) +
+																																		edge[1] / dot(edge[1], edge_normal[0]));
+	s_position[2].xy = s_position[2].xy - pixel_diagonal * (edge[1] / dot(edge[1], edge_normal[2]) +
+																																		edge[2] / dot(edge[2], edge_normal[1]));
+
+	return s_position;
 }

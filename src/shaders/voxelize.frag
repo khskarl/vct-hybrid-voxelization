@@ -19,7 +19,9 @@ layout(binding = 2, r32ui) uniform volatile coherent restrict uimage3D u_voxel_e
 layout(binding = 0) uniform sampler2D albedo_map;
 
 void main() {
-	discard_if_outside_aabb(g_AABB, u_width);
+	if(is_outside_aabb(g_AABB, gl_FragCoord.xy, u_width)) {
+		discard;
+	}
 
 	mat3 swizzle_matrix_inverse = inverse(swizzleLUT[g_swizzle]);
 
