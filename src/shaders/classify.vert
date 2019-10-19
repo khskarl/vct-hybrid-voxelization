@@ -11,23 +11,23 @@ out VSOUT {
 	int  id;
 } v_out;
 
-uniform int u_width;
-uniform int u_height;
-uniform int u_depth;
-
 uniform mat4 pv;
 uniform mat4 model;
-layout(binding = 0, r32ui) uniform coherent uimage3D u_voxel_albedo;
+
+layout(binding = 0, rgba8) uniform coherent image3D u_voxel_albedo;
+
+vec3 to_voxel_space(vec3 pos) {
+	return (pos + vec3(1.0)) * 0.5 * 64.0;
+}
 
 void main() {
-	vec4 w_position = pv * model * vec4(aPosition, 1.0);
-	gl_Position = w_position;
+	vec4 position = pv * model * vec4(aPosition, 1.0);
+	gl_Position = position;
 
-	v_out.w_position = w_position.xyz;
+	v_out.w_position = to_voxel_space(position.xyz);
 	v_out.w_normal = normalize(vec3(model * vec4(aNormal, 1.0)));
 	v_out.uv = aTexCoord;
 	v_out.id = gl_VertexID;
-	imageStore(u_voxel_albedo, ivec3(w_position.xyz), uvec4(255));
-	imageStore(u_voxel_albedo, ivec3(0, 0, 0), uvec4(255));
 
+	// imageStore(u_voxel_albedo, coordinates, vec4(aNormal, 1.0));
 }

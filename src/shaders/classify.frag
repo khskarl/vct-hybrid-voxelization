@@ -12,12 +12,6 @@ in vec2 g_uv;
 in flat vec4 g_AABB;
 in flat int g_swizzle;
 
-layout(binding = 0, r32ui) uniform volatile coherent restrict uimage3D u_voxel_albedo;
-layout(binding = 1, r32ui) uniform volatile coherent restrict uimage3D u_voxel_normal;
-layout(binding = 2, r32ui) uniform volatile coherent restrict uimage3D u_voxel_emission;
-
-layout(binding = 0) uniform sampler2D albedo_map;
-
 void main() {
 	// if(is_outside_aabb(g_AABB, gl_FragCoord.xy, u_width)) {
 	// 	discard;
