@@ -16,15 +16,6 @@ uniform int u_width;
 uniform int u_height;
 uniform int u_depth;
 
-uniform mat4 pv;
-
-out vec3 gw_position;
-out vec3 gw_normal;
-out vec2 g_uv;
-out flat vec4 g_AABB;
-out flat int g_swizzle;
-
-
 layout(binding = 0, rgba8) uniform volatile coherent restrict image3D u_voxel_albedo;
 layout(binding = 1, rgba8) uniform volatile coherent restrict image3D u_voxel_normal;
 layout(binding = 2, rgba8) uniform volatile coherent restrict image3D u_voxel_emission;
@@ -89,8 +80,31 @@ void swizzleTri(inout vec3 v0, inout vec3 v1, inout vec3 v2, out vec3 n, out mat
 	}
 }
 
+vec3 barycentric_coordinates(vec3 v0, vec3 v1, vec3 v2, vec3 p) {
+	vec3 e0 = v1 - v0;
+	vec3 e1 = v2 - v0;
+	vec3 e2 = p - v0;
+
+	float d00 = dot(e0, e0);
+	float d01 = dot(e0, e1);
+	float d11 = dot(e1, e1);
+	float d20 = dot(e2, e0);
+	float d21 = dot(e2, e1);
+
+	float denom = d00 * d11 - d01 * d01;
+
+	float v = (d11 * d20 - d01 * d21) / denom;
+	float w = (d00 * d21 - d01 * d20) / denom;
+	float u = 1.0 - v - w;
+
+	return vec3(u, v, w);
+}
+
 void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, ivec3 minVoxIndex, ivec3 maxVoxIndex)
 {
+	vec3 v0s = unswizzle * v0;
+	vec3 v1s = unswizzle * v1;
+	vec3 v2s = unswizzle * v2;
 
 	vec3 e0 = v1 - v0;	//figure 17/18 line 2
 	vec3 e1 = v2 - v1;	//figure 17/18 line 2
@@ -174,10 +188,22 @@ void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, i
 
 					if(yz_overlap && zx_overlap)	//figure 17/18 line 19
 					{
-						vec4 val = vec4(0.0, 0.0, 0.0, 1.0);
-						imageStore(u_voxel_albedo, ivec3(unswizzle * p), val);
-						imageStore(u_voxel_normal, ivec3(unswizzle * p), val);
-						imageStore(u_voxel_emission, ivec3(unswizzle * p), val);
+						vec3 ps = unswizzle * p;
+
+						vec2 uv0 = v_in[0].uv;
+						vec2 uv1 = v_in[1].uv;
+						vec2 uv2 = v_in[2].uv;
+						vec3 bary = barycentric_coordinates(v0s, v1s, v2s, ps);
+						vec2 uv = bary.x * uv0 + bary.y * uv1 + bary.z * uv2;
+						vec3 albedo = texture(albedo_map, uv).rgb;
+
+						imageStore(u_voxel_albedo, ivec3(ps), vec4(albedo, 1.0));
+
+						// imageStore(u_voxel_normal, ivec3(ps), vec4(1.0));
+						// imageStore(u_voxel_normal, ivec3(unswizzle * v0), vec4(1.0, 0.0, 0.0, 1.0));
+						// imageStore(u_voxel_normal, ivec3(unswizzle * v1), vec4(0.0, 1.0, 0.0, 1.0));
+						// imageStore(u_voxel_normal, ivec3(unswizzle * v2), vec4(0.0, 0.0, 1.0, 1.0));
+						// imageStore(u_voxel_emission, ivec3(ps), vec4(0.0));
 					}
 				}
 			}

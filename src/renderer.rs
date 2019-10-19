@@ -271,10 +271,10 @@ impl Renderer {
 				.set_mat4f(&primitive.model_matrix_raw());
 
 			let mat = &primitive.material();
-			// self
-			// 	.classify_program
-			// 	.get_uniform("albedo_map")
-			// 	.set_sampler_2d(&mat.albedo(), 0);
+			self
+				.classify_program
+				.get_uniform("albedo_map")
+				.set_sampler_2d(&mat.albedo(), 0);
 
 			gl_draw_elements(
 				DrawMode::Triangles,
