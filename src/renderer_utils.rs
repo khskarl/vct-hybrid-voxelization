@@ -216,7 +216,7 @@ pub fn voxelization_pv(volume: &Volume) -> [f32; 16] {
 		half_width + 0.1,
 		-half_height,
 		half_height + 0.1,
-		depth,
+		depth + 0.01,
 		0.0,
 	);
 	let position = volume.translation() + glm::vec3(0.0, 0.0, volume.scaling()[2] * 0.5);

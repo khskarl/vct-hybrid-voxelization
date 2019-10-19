@@ -189,21 +189,28 @@ void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, i
 					if(yz_overlap && zx_overlap)	//figure 17/18 line 19
 					{
 						vec3 ps = unswizzle * p;
+						vec3 bary = barycentric_coordinates(v0s, v1s, v2s, ps);
 
 						vec2 uv0 = v_in[0].uv;
 						vec2 uv1 = v_in[1].uv;
 						vec2 uv2 = v_in[2].uv;
-						vec3 bary = barycentric_coordinates(v0s, v1s, v2s, ps);
 						vec2 uv = bary.x * uv0 + bary.y * uv1 + bary.z * uv2;
+
+						vec3 n0 = v_in[0].w_normal;
+						vec3 n1 = v_in[1].w_normal;
+						vec3 n2 = v_in[2].w_normal;
+						vec3 normal = encode_normal(bary.x * n0 + bary.y * n1 + bary.z * n2);
+
 						vec3 albedo = texture(albedo_map, uv).rgb;
 
 						imageStore(u_voxel_albedo, ivec3(ps), vec4(albedo, 1.0));
 
-						// imageStore(u_voxel_normal, ivec3(ps), vec4(1.0));
-						// imageStore(u_voxel_normal, ivec3(unswizzle * v0), vec4(1.0, 0.0, 0.0, 1.0));
-						// imageStore(u_voxel_normal, ivec3(unswizzle * v1), vec4(0.0, 1.0, 0.0, 1.0));
-						// imageStore(u_voxel_normal, ivec3(unswizzle * v2), vec4(0.0, 0.0, 1.0, 1.0));
-						// imageStore(u_voxel_emission, ivec3(ps), vec4(0.0));
+						imageStore(u_voxel_normal, ivec3(ps), vec4(normal, 1.0));
+						vec3 emission = vec3(1.0) - normal.yyy;
+						if(emission.y < 0.9) {
+							emission.rgb = vec3(0.0);
+						}
+						imageStore(u_voxel_emission, ivec3(ps), vec4(emission * (vec3(ps / u_width)), 1.0));
 					}
 				}
 			}
@@ -220,15 +227,14 @@ void main() {
 	swizzleTri(v0, v1, v2, n, swizzle);
 
 	int classification = classifyTriPostSwizzle(v0, v1, v2, 200090.2);
-	// imageStore(u_voxel_albedo, ivec3(1, 1, 1), uvec4(255));
 
-	// if(classification == LARGE) {
+	if(classification == LARGE) {
 		// int index = int(atomicCounterIncrement(largaaaeTriCount));
 
 		// imageStore(largeIdx, 3*index+0, uvec4(In[0].vertexID));
 		// imageStore(largeIdx, 3*index+1, uvec4(In[1].vertexID));
 		// imageStore(largeIdx, 3*index+2, uvec4(In[2].vertexID));
-	// } else if(classification == SMALL) {
+	} else if(classification == SMALL) {
 		vec3 AABBmin = min(min(v0, v1), v2);
 		vec3 AABBmax = max(max(v0, v1), v2);
 		ivec3 voxelResolution = ivec3(u_width, u_height, u_depth);
@@ -237,7 +243,7 @@ void main() {
 		ivec3 maxVoxIndex = ivec3(clamp( ceil(AABBmax), ivec3(0), voxelResolution));
 
 		voxelizeTriPostSwizzle(v0, v1, v2, n, swizzle, minVoxIndex, maxVoxIndex);
-	// }
+	}
 
 //	memoryBarrier();
 

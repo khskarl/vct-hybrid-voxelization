@@ -11,13 +11,16 @@ out VSOUT {
 	int  id;
 } v_out;
 
+
+uniform int u_width;
+
 uniform mat4 pv;
 uniform mat4 model;
 
 layout(binding = 0, rgba8) uniform coherent image3D u_voxel_albedo;
 
 vec3 to_voxel_space(vec3 pos) {
-	return (pos + vec3(1.0)) * 0.5 * 64.0;
+	return (pos + vec3(1.0)) * 0.5 * u_width;
 }
 
 void main() {
@@ -28,6 +31,4 @@ void main() {
 	v_out.w_normal = normalize(vec3(model * vec4(aNormal, 1.0)));
 	v_out.uv = aTexCoord;
 	v_out.id = gl_VertexID;
-
-	// imageStore(u_voxel_albedo, coordinates, vec4(aNormal, 1.0));
 }
