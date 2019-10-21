@@ -549,7 +549,7 @@ impl Renderer {
 
 	pub fn save_diagnostics(&self, scene_name: &str) {
 		let resolution = self.volume_scene.resolution();
-		let file_name = format!("{}_{}", resolution, scene_name);
+		let file_name = format!("{}_{}.csv", resolution, scene_name);
 
 		self.timer.save_file(&file_name).unwrap();
 	}

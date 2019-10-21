@@ -20,10 +20,10 @@ impl GlTimer {
 			gl::GenQueries(num_queries as i32, query_ids.as_mut_ptr());
 		}
 
-		let mut times = Vec::new();
-		times.resize(max_frames, 0.0);
+		let mut samples = Vec::new();
+		samples.resize(max_frames, 0.0);
 		let mut frames = Vec::new();
-		frames.resize(num_queries, times);
+		frames.resize(num_queries, samples);
 
 		GlTimer {
 			query_ids,
@@ -80,7 +80,7 @@ impl GlTimer {
 		*id
 	}
 
-	fn get_handle(&self, name: &'static str) -> Option<&usize> {
+	fn get_handle(&self, name: &str) -> Option<&usize> {
 		self.handles.get(name)
 	}
 
@@ -89,8 +89,19 @@ impl GlTimer {
 
 		let mut writer = Writer::from_path(file_name).unwrap();
 
-		for (name, handle) in self.handles.iter() {
-			// writer.write_record(&["a", "b", "c"]).unwrap();
+		let query_names: Vec<String> = self.handles.iter().map(|(name, _)| name.clone()).collect();
+		// writer.write_record(&query_names).unwrap();
+
+		for name in query_names.iter() {
+			let handle = *self.get_handle(name).unwrap();
+			let mut samples = Vec::new();
+
+			for frame in 0..self.max_frames {
+				let sample = self.frames[handle][frame];
+				samples.push(sample);
+			}
+			let record = (name, samples);
+			writer.serialize(record).unwrap();
 		}
 
 		writer.flush().unwrap();
