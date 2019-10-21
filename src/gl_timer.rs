@@ -88,7 +88,10 @@ impl GlTimer {
 		use csv::Writer;
 
 		let mut writer = Writer::from_path(file_name).unwrap();
-		writer.write_record(&["a", "b", "c"]).unwrap();
+
+		for (name, handle) in self.handles.iter() {
+			// writer.write_record(&["a", "b", "c"]).unwrap();
+		}
 
 		writer.flush().unwrap();
 
