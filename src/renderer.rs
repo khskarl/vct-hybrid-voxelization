@@ -1,3 +1,4 @@
+use crate::gl_timer::*;
 use crate::gl_utils::*;
 use crate::gpu_model::{GpuMaterial, GpuPrimitive};
 use crate::renderer_utils::*;
@@ -49,6 +50,8 @@ pub struct Renderer {
 	bounds_program: GLProgram,
 	clear_program: GLProgram,
 	inject_program: GLProgram,
+	tri_count_buffer: GLBuffer,
+	timer: GlTimer,
 }
 
 impl Renderer {
@@ -92,6 +95,8 @@ impl Renderer {
 			bounds_program: load_bounds_program(),
 			clear_program: load_clear_program(),
 			inject_program: load_radiance_injection_program(),
+			tri_count_buffer: GLBuffer::new(BufferTarget::AtomicCounter, 0, Usage::DynamicDraw, &[999]),
+			timer: GlTimer::new(10, 1200),
 		}
 	}
 
@@ -179,7 +184,7 @@ impl Renderer {
 
 		let translation = glm::translation(self.volume_scene.translation());
 		let scaling = glm::scaling(self.volume_scene.scaling());
-		let model = (scaling);
+		let model = scaling;
 
 		self
 			.inject_program
@@ -228,15 +233,17 @@ impl Renderer {
 		gl_draw_arrays(DrawMode::Lines, 0, 24);
 	}
 
-	fn voxelize(&self) {
+	fn voxelize(&mut self) {
 		match self.voxelization_mode {
 			VoxelizationMode::FragmentOnly => self.voxelize_fragment(),
 			VoxelizationMode::Hybrid => self.voxelize_hybrid(),
 		}
 	}
 
-	fn voxelize_hybrid(&self) {
+	fn voxelize_hybrid(&mut self) {
 		self.clear_volume();
+
+		self.timer.begin("voxelize_hybrid_triangle");
 
 		let width = self.volume_scene.resolution() as i32;
 		let height = self.volume_scene.resolution() as i32;
@@ -248,12 +255,14 @@ impl Renderer {
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
+			gl::Enable(gl::RASTERIZER_DISCARD);
 		};
 
 		self.classify_program.bind();
-		self.classify_program.get_uniform("u_width").set_1i(width);
-		self.classify_program.get_uniform("u_height").set_1i(height);
-		self.classify_program.get_uniform("u_depth").set_1i(depth);
+		self
+			.classify_program
+			.get_uniform("u_resolution")
+			.set_3i(1, &[width, height, depth]);
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 		self.classify_program.get_uniform("pv").set_mat4f(&pv);
@@ -261,8 +270,15 @@ impl Renderer {
 		self.volume_scene.bind_image_albedo(0);
 		self.volume_scene.bind_image_normal(1);
 		self.volume_scene.bind_image_emission(2);
-
 		for primitive in &self.primitives {
+			self.tri_count_buffer.bind_base(0);
+
+			let tri_count = self.tri_count_buffer.read_data_u32();
+			println!("Pre-before: {}", tri_count);
+			self.tri_count_buffer.write_data_u32(12);
+			let tri_count = self.tri_count_buffer.read_data_u32();
+			println!("Before: {}", tri_count);
+
 			primitive.bind();
 
 			self
@@ -282,12 +298,21 @@ impl Renderer {
 				IndexKind::UnsignedInt,
 				0,
 			);
+
+			unsafe {
+				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+			}
+			let tri_count = self.tri_count_buffer.read_data_u32();
+			println!("After: {}", tri_count);
 		}
 
 		unsafe {
 			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
-			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			gl::Disable(gl::RASTERIZER_DISCARD);
 		}
+		self.timer.end("voxelize_hybrid_triangle");
+
+		self.tri_count_buffer.unbind();
 	}
 
 	fn voxelize_fragment(&self) {
@@ -348,7 +373,8 @@ impl Renderer {
 		}
 	}
 
-	pub fn render(&self, camera: &Camera) {
+	pub fn render(&mut self, camera: &Camera) {
+		self.timer.begin_frame();
 		self.render_to_shadow_map();
 
 		self.voxelize();
@@ -366,6 +392,7 @@ impl Renderer {
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
 		self.render_bounds(camera);
+		self.timer.end_frame();
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {
@@ -400,7 +427,9 @@ impl Renderer {
 		self.volume_scene.draw();
 	}
 
-	pub fn render_scene(&self, camera: &Camera) {
+	pub fn render_scene(&mut self, camera: &Camera) {
+		self.timer.begin("render_scene");
+
 		let proj_view: [f32; 16] = camera.proj_view_raw();
 
 		let program = &self.pbr_program;
@@ -484,6 +513,8 @@ impl Renderer {
 				0,
 			);
 		}
+
+		self.timer.end("render_scene");
 	}
 
 	pub fn set_viewport_size(&mut self, size: (usize, usize)) {
@@ -514,6 +545,13 @@ impl Renderer {
 
 	pub fn primitives_mut(&mut self) -> &mut Vec<GpuPrimitive> {
 		&mut self.primitives
+	}
+
+	pub fn save_diagnostics(&self, scene_name: &str) {
+		let resolution = self.volume_scene.resolution();
+		let file_name = format!("{}_{}", resolution, scene_name);
+
+		self.timer.save_file(&file_name).unwrap();
 	}
 
 	fn fetch_material(&mut self, material: &Material) -> Rc<GpuMaterial> {

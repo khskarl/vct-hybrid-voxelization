@@ -1,6 +1,7 @@
 use std::str;
 use std::time::Instant;
 
+mod gl_timer;
 mod gl_utils;
 mod gpu_model;
 mod renderer;
@@ -62,23 +63,23 @@ fn main() {
 		// 	&mut resources,
 		// ));
 		renderer.submit_mesh(&Mesh::new(
-			"assets/models/sphere.glb",
+			"assets/models/test.glb",
 			vec3(0.0, 2.0, 0.0),
 			vec3(1.0, 1.0, 1.0),
 			&mut resources,
 		));
-		renderer.submit_mesh(&Mesh::new(
-			"assets/models/sphere.glb",
-			vec3(0.0, 5.0, 5.0),
-			vec3(1.0, 1.0, 1.0),
-			&mut resources,
-		));
-		renderer.submit_mesh(&Mesh::new(
-			"assets/models/cornell_box.glb",
-			vec3(0.0, 0.0, 0.0),
-			vec3(1.0, 1.0, 1.0),
-			&mut resources,
-		));
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/sphere.glb",
+		// 	vec3(0.0, 5.0, 5.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
+		// renderer.submit_mesh(&Mesh::new(
+		// 	"assets/models/cornell_box.glb",
+		// 	vec3(0.0, 0.0, 0.0),
+		// 	vec3(1.0, 1.0, 1.0),
+		// 	&mut resources,
+		// ));
 		// renderer.submit_mesh(&Mesh::new(
 		// 	"assets/models/debug_plane.glb",
 		// 	vec3(0.0, 0.0, 0.0),
@@ -140,6 +141,8 @@ fn main() {
 						(L, _) => key_states.L = state,
 						(K, _) => key_states.K = state,
 						(I, _) => key_states.I = state,
+
+						(P, Released) => renderer.save_diagnostics("debug"),
 
 						_ => (),
 					}

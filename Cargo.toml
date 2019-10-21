@@ -21,6 +21,7 @@ glutin = "0.22.0-alpha3"
 imgui = "0.2"
 imgui-gfx-renderer = "0.2"
 imgui-opengl-renderer = "0.6.0"
+csv = "1.1"
 
 [dependencies.imgui-winit-support]
 version = "0.2.1"

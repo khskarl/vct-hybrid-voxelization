@@ -12,7 +12,7 @@ out VSOUT {
 } v_out;
 
 
-uniform int u_width;
+uniform ivec3 u_resolution;
 
 uniform mat4 pv;
 uniform mat4 model;
@@ -20,7 +20,7 @@ uniform mat4 model;
 layout(binding = 0, rgba8) uniform coherent image3D u_voxel_albedo;
 
 vec3 to_voxel_space(vec3 pos) {
-	return (pos + vec3(1.0)) * 0.5 * u_width;
+	return (pos + vec3(1.0)) * 0.5 * u_resolution;
 }
 
 void main() {

@@ -21,16 +21,35 @@ pub fn print_opengl_diagnostics() {
 
 	let mut max_geometry_tex = 0;
 	let mut group_size = [0, 0, 0];
+	let mut max_atomic_counter_bindings = 0;
+	let mut max_atomic_counter_buffer_size = 0;
 	unsafe {
 		gl::GetIntegerv(gl::MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, &mut max_geometry_tex);
 		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 0, &mut group_size[0]);
 		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 1, &mut group_size[1]);
 		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 2, &mut group_size[2]);
+		gl::GetIntegerv(
+			gl::MAX_ATOMIC_COUNTER_BUFFER_BINDINGS,
+			&mut max_atomic_counter_bindings,
+		);
+		gl::GetIntegerv(
+			gl::ATOMIC_COUNTER_BUFFER_SIZE,
+			&mut max_atomic_counter_buffer_size,
+		);
 	}
 	println!("MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
 	println!(
 		"MAX_COMPUTE_WORK_GROUP_SIZE : ({}, {}, {})",
 		group_size[0], group_size[1], group_size[2]
+	);
+	println!(
+		"MAX_ATOMIC_COUNTER_BUFFER_BINDINGS : {}",
+		max_atomic_counter_bindings
+	);
+
+	println!(
+		"ATOMIC_COUNTER_BUFFER_SIZE : {}",
+		max_atomic_counter_buffer_size
 	);
 
 	print_needed_extensions();
