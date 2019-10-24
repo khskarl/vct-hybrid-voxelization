@@ -1,0 +1,40 @@
+#version 450 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(location = 0) uniform uint child_mip_dimension;
+
+layout(binding = 0) uniform sampler3D parent_volume;
+layout(binding = 1, rgba8) uniform writeonly image3D child_volume;
+
+const ivec3 offsets[] = ivec3[8](ivec3(1, 1, 1), ivec3(1, 1, 0), 
+                                ivec3(1, 0, 1), ivec3(1, 0, 0), 
+                                ivec3(0, 1, 1), ivec3(0, 1, 0), 
+                                ivec3(0, 0, 1), ivec3(0, 0, 0));
+
+vec4[8] fetch_texels(ivec3 position) {
+  vec4 voxels[8];
+
+  for (int i = 0; i < 8; i++) {
+    voxels[i] = texelFetch(parent_volume, position + offsets[i], 0);
+    voxels[i].rgb = voxels[i].rgb * 0.0001 + offsets[i];
+  }
+
+  return voxels;
+}
+
+void main() {
+    if (gl_GlobalInvocationID.x >= child_mip_dimension || gl_GlobalInvocationID.y >= child_mip_dimension ||
+        gl_GlobalInvocationID.z >= child_mip_dimension) {
+    return;
+    }
+
+    ivec3 write_position = ivec3(gl_GlobalInvocationID);
+    ivec3 source_position = write_position * 2;
+
+    vec4 values[8] = fetch_texels(source_position);
+
+    imageStore(child_volume, write_position, (
+        (values[0] + values[1] + values[2] + values[3] + values[4] + values[5] + values[6] + values[7]) * 0.125
+    ));
+}

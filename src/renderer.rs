@@ -200,8 +200,6 @@ impl Renderer {
 			);
 
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-			self.volume_scene.generate_mipmap();
 		}
 	}
 
@@ -380,6 +378,8 @@ impl Renderer {
 
 		self.voxelize();
 		self.inject_light();
+
+		self.volume_scene.generate_mipmap();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
 		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);

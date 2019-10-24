@@ -95,6 +95,12 @@ pub fn load_radiance_injection_program() -> GLProgram {
 	GLProgram::new_comp(&cs_src[..])
 }
 
+pub fn load_mipmap_program() -> GLProgram {
+	let cs_src = fs::read_to_string("src/shaders/mipmap.comp").expect(COMPUTE_EXPECT);
+
+	GLProgram::new_comp(&cs_src[..])
+}
+
 //////////////////////
 // MATERIAL HELPERS //
 pub fn load_texture(texture: &Texture) -> GLTexture {

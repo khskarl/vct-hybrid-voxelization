@@ -4,6 +4,7 @@ use gl_helpers::*;
 use glm::UVec3;
 use nalgebra_glm as glm;
 use std::mem;
+use crate::renderer_utils::*;
 
 pub struct Volume {
 	albedo_id: u32,
@@ -16,6 +17,7 @@ pub struct Volume {
 	scaling: glm::Vec3,
 	view_translation: glm::Vec3,
 	view_scaling: glm::Vec3,
+	mipmap_program: GLProgram,
 }
 
 impl Volume {
@@ -36,6 +38,7 @@ impl Volume {
 			scaling: glm::Vec3::new(10.0, 10.0, 10.0),
 			view_translation: glm::Vec3::new(10.15, 5.0, 0.0),
 			view_scaling: glm::Vec3::new(10.0, 10.0, 10.0),
+			mipmap_program: load_mipmap_program(),
 		}
 	}
 
@@ -149,8 +152,29 @@ impl Volume {
 			// gl::GenerateTextureMipmap(self.albedo_id());
 			// gl::GenerateTextureMipmap(self.normal_id());
 			// gl::GenerateTextureMipmap(self.emission_id());
+			// gl::GenerateTextureMipmap(self.radiance_id());
 			gl::GenerateTextureMipmap(self.radiance_id());
+			// gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
+			// gl::GenerateMipmap(gl::TEXTURE_3D);
 		}
+
+		// self.mipmap_program.bind();
+
+		
+		// gl::ActiveTexture(gl::TEXTURE0 + index);
+		// gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
+
+		// let resolution = self.resolution();
+
+		// unsafe {
+		// 	gl::DispatchCompute(
+		// 		resolution as u32 / 8,
+		// 		resolution as u32 / 8,
+		// 		resolution as u32 / 8,
+		// 	);
+
+		// 	gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		// }
 	}
 
 	pub fn count_cells(&self) -> usize {
@@ -209,7 +233,9 @@ pub fn allocate_texture_3D(resolution: usize) -> u32 {
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_R, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR_MIPMAP_LINEAR as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_MAX_LEVEL, 9);
+		TexParameteri(TEXTURE_3D, TEXTURE_BASE_LEVEL, 0);
 
 		let mut pixels = Vec::<[u8; 4]>::new();
 		for i in 0..resolution * resolution * resolution {
@@ -227,7 +253,7 @@ pub fn allocate_texture_3D(resolution: usize) -> u32 {
 		let resolution = resolution as i32;
 		TexStorage3D(
 			TEXTURE_3D,
-			1,
+			9,
 			gl::RGBA8 as u32,
 			resolution,
 			resolution,
