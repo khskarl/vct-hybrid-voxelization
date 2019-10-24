@@ -28,10 +28,10 @@ impl Volume {
 		);
 
 		Volume {
-			albedo_id: allocate_texture_3D(resolution),
-			normal_id: allocate_texture_3D(resolution),
-			emission_id: allocate_texture_3D(resolution),
-			radiance_id: allocate_texture_3D(resolution),
+			albedo_id: allocate_texture_3D(resolution, 1),
+			normal_id: allocate_texture_3D(resolution, 1),
+			emission_id: allocate_texture_3D(resolution, 1),
+			radiance_id: allocate_texture_3D(resolution, 9),
 			resolution,
 			primitive,
 			translation: glm::Vec3::new(0.0, 5.0, 0.0),
@@ -121,29 +121,25 @@ impl Volume {
 
 	pub fn bind_texture_albedo(&self, index: u32) {
 		unsafe {
-			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::BindTexture(gl::TEXTURE_3D, self.albedo_id());
+			gl::BindTextureUnit(index, self.albedo_id());
 		}
 	}
 
 	pub fn bind_texture_normal(&self, index: u32) {
 		unsafe {
-			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::BindTexture(gl::TEXTURE_3D, self.normal_id());
+			gl::BindTextureUnit(index, self.normal_id());
 		}
 	}
 
 	pub fn bind_texture_emission(&self, index: u32) {
 		unsafe {
-			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::BindTexture(gl::TEXTURE_3D, self.emission_id());
+			gl::BindTextureUnit(index, self.emission_id());
 		}
 	}
 
 	pub fn bind_texture_radiance(&self, index: u32) {
 		unsafe {
-			gl::ActiveTexture(gl::TEXTURE0 + index);
-			gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
+			gl::BindTextureUnit(index, self.radiance_id());
 		}
 	}
 
@@ -153,7 +149,7 @@ impl Volume {
 			// gl::GenerateTextureMipmap(self.normal_id());
 			// gl::GenerateTextureMipmap(self.emission_id());
 			// gl::GenerateTextureMipmap(self.radiance_id());
-			gl::GenerateTextureMipmap(self.radiance_id());
+			// gl::GenerateTextureMipmap(self.radiance_id());
 			// gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
 			// gl::GenerateMipmap(gl::TEXTURE_3D);
 		}
@@ -222,7 +218,7 @@ impl Volume {
 	}
 }
 
-pub fn allocate_texture_3D(resolution: usize) -> u32 {
+pub fn allocate_texture_3D(resolution: usize, mipmap: usize) -> u32 {
 	use gl::*;
 
 	let mut handle = 0;
@@ -233,13 +229,11 @@ pub fn allocate_texture_3D(resolution: usize) -> u32 {
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_R, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR_MIPMAP_LINEAR as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_MAX_LEVEL, 9);
-		TexParameteri(TEXTURE_3D, TEXTURE_BASE_LEVEL, 0);
+		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
 
 		let mut pixels = Vec::<[u8; 4]>::new();
 		for i in 0..resolution * resolution * resolution {
-			let (r, g, b, a) = (0, 0, 0, 0);
+			let (r, g, b, a) = (1, 0, 1, 1);
 			pixels.push([r as u8, g as u8, b as u8, a as u8]);
 		}
 
@@ -253,25 +247,28 @@ pub fn allocate_texture_3D(resolution: usize) -> u32 {
 		let resolution = resolution as i32;
 		TexStorage3D(
 			TEXTURE_3D,
-			9,
+			mipmap as i32,
 			gl::RGBA8 as u32,
 			resolution,
 			resolution,
 			resolution,
 		);
-		TexSubImage3D(
-			TEXTURE_3D,
-			0,
-			0,
-			0,
-			0,
-			resolution,
-			resolution,
-			resolution,
-			gl::RGBA,
-			gl::UNSIGNED_BYTE,
-			mem::transmute(raw_pixels[..].as_ptr()),
-		);
+
+		for level in 0..mipmap {
+			TexSubImage3D(
+				TEXTURE_3D,
+				level as i32,
+				0,
+				0,
+				0,
+				resolution,
+				resolution,
+				resolution,
+				gl::RGBA,
+				gl::UNSIGNED_BYTE,
+				mem::transmute(raw_pixels[..].as_ptr()),
+			);
+		}
 	}
 
 	handle
