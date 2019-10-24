@@ -62,7 +62,7 @@ impl Renderer {
 	) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 		gl_set_defaults();
-		print_opengl_diagnostics();
+		// print_opengl_diagnostics();
 
 		unsafe {
 			gl::Enable(gl::PROGRAM_POINT_SIZE);

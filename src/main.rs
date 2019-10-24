@@ -32,6 +32,12 @@ fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
 		&mut resources,
 	));
 
+	let volume = renderer.volume_mut();
+	*volume.translation_mut() = vec3(0.0, 50.0, 0.0);
+	*volume.scaling_mut() = vec3(10.0, 10.0, 10.0);
+	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
+	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
+
 	camera.position = vec3(0.0, 2.0, 10.0);
 	camera.pitch = -90.0;
 	camera.yaw = 0.0;
@@ -48,8 +54,14 @@ fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera) {
 		&mut resources,
 	));
 
-	camera.position = vec3(0.0, 2.0, 10.0);
-	camera.yaw = -90.0;
+	let volume = renderer.volume_mut();
+	*volume.translation_mut() = vec3(0.0, 5.0, 0.0);
+	*volume.scaling_mut() = vec3(24.0, 10.1, 12.0);
+	*volume.view_translation_mut() = vec3(0.0, 5.0, 0.0);
+	*volume.view_scaling_mut() = vec3(24.0, 10.1, 12.0);
+
+	camera.position = vec3(4.0, 2.0, 0.0);
+	camera.yaw = 0.0;
 	camera.pitch = 0.0;
 }
 
@@ -64,11 +76,24 @@ fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
 		&mut resources,
 	));
 	renderer.submit_mesh(&Mesh::new(
+		"assets/models/cube.glb",
+		vec3(0.0, 0.0, 0.0),
+		vec3(1.0, 1.0, 1.0),
+		&mut resources,
+	));
+	renderer.submit_mesh(&Mesh::new(
 		"assets/models/cornell_box.glb",
 		vec3(0.0, 0.0, 0.0),
 		vec3(1.0, 1.0, 1.0),
 		&mut resources,
 	));
+
+	let volume = renderer.volume_mut();
+	*volume.translation_mut() = vec3(0.0, 50.0, 0.0);
+	*volume.scaling_mut() = vec3(10.0, 10.0, 10.0);
+	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
+	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
+
 	camera.position = vec3(0.0, 2.0, 10.0);
 	camera.yaw = -90.0;
 	camera.pitch = 0.0;
@@ -97,7 +122,7 @@ fn main() {
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
 	
 	let resolutions = [64, 128, 256];
-	let res_index = 1;
+	let res_index = 2;
 
 	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size, resolutions[res_index]);
@@ -110,21 +135,8 @@ fn main() {
 	};
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
-	cornell_scene(&mut renderer, &mut camera);
-	{
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/cube.glb",
-		// 	vec3(0.0, 0.0, 0.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/debug_plane.glb",
-		// 	vec3(0.0, 0.0, 0.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
-	}
+	// cornell_scene(&mut renderer, &mut camera);
+	sponza_scene(&mut renderer, &mut camera);
 
 	let mut key_states = KeyStates::new();
 

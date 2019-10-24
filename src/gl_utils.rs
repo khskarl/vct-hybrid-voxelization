@@ -5,7 +5,7 @@ use std::str;
 use std::{fs::File, io::{BufWriter, Write}};
 
 pub fn print_opengl_diagnostics() {
-	let write_file = File::create("./diagnostics.log").unwrap();
+	let write_file = File::create("./diagnostics2.log").unwrap();
 	let mut writer = BufWriter::new(&write_file);
 	let gl_info = GLInfo::new();
 
@@ -27,6 +27,7 @@ pub fn print_opengl_diagnostics() {
 	let mut group_size = [0, 0, 0];
 	let mut max_atomic_counter_bindings = 0;
 	let mut max_atomic_counter_buffer_size = 66;
+	let mut max_geom_ac_buffers = 66;
 	unsafe {
 		gl::GetIntegerv(gl::MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, &mut max_geometry_tex);
 		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 0, &mut group_size[0]);
@@ -37,11 +38,16 @@ pub fn print_opengl_diagnostics() {
 			&mut max_atomic_counter_bindings,
 		);
 		gl::GetIntegerv(
-			gl::ATOMIC_COUNTER_BUFFER_SIZE,
+			gl::MAX_ATOMIC_COUNTER_BUFFER_SIZE,
 			&mut max_atomic_counter_buffer_size,
 		);
+		
+		gl::GetIntegerv(
+			gl::MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS,
+			&mut max_geom_ac_buffers,
+		);
 	}
-	writeln!(&mut writer, "MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
+	writeln!(&mut writer, "MAX_GEOMETRY_TEXAAAAAAAAAAAAATURE_IMAGE_UNITS : {}", max_geometry_tex);
 	writeln!(&mut writer, 
 		"MAX_COMPUTE_WORK_GROUP_SIZE : ({}, {}, {})",
 		group_size[0], group_size[1], group_size[2]
@@ -52,8 +58,13 @@ pub fn print_opengl_diagnostics() {
 	);
 
 	writeln!(&mut writer, 
-		"ATOMIC_COUNTER_BUFFER_SIZE : {}",
+		"MAX_ATOMIC_COUNTER_BUFFER_SIZE : {}",
 		max_atomic_counter_buffer_size
+	);
+	
+	writeln!(&mut writer, 
+		"MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS : {}",
+		max_geom_ac_buffers
 	);
 	
 	let i_need_these_extensions_please = vec![
@@ -69,7 +80,6 @@ pub fn print_opengl_diagnostics() {
 	}
 
 	write_file.sync_all().unwrap();
-
 }
 
 #[allow(dead_code)]
