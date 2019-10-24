@@ -33,7 +33,7 @@ fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	));
 
 	let volume = renderer.volume_mut();
-	*volume.translation_mut() = vec3(0.0, 50.0, 0.0);
+	*volume.translation_mut() = vec3(0.0, 0.0, 0.0);
 	*volume.scaling_mut() = vec3(10.0, 10.0, 10.0);
 	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
 	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
@@ -89,7 +89,7 @@ fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	));
 
 	let volume = renderer.volume_mut();
-	*volume.translation_mut() = vec3(0.0, 50.0, 0.0);
+	*volume.translation_mut() = vec3(0.0, 5.0, 0.0);
 	*volume.scaling_mut() = vec3(10.0, 10.0, 10.0);
 	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
 	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
@@ -122,7 +122,7 @@ fn main() {
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
 	
 	let resolutions = [64, 128, 256];
-	let res_index = 2;
+	let res_index = 0;
 
 	// Renderer setup
 	let mut renderer = renderer::Renderer::new(&window_gl, logical_size, resolutions[res_index]);
@@ -135,8 +135,8 @@ fn main() {
 	};
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
-	// cornell_scene(&mut renderer, &mut camera);
-	sponza_scene(&mut renderer, &mut camera);
+	cornell_scene(&mut renderer, &mut camera);
+	// sponza_scene(&mut renderer, &mut camera);
 
 	let mut key_states = KeyStates::new();
 

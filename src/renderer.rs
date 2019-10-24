@@ -79,8 +79,8 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Albedo,
-			voxelization_mode: VoxelizationMode::Hybrid,
+			rendering_mode: RenderingMode::Radiance,
+			voxelization_mode: VoxelizationMode::FragmentOnly,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
