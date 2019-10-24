@@ -2,18 +2,22 @@ use gl_helpers::*;
 
 use std::ffi::CStr;
 use std::str;
+use std::{fs::File, io::{BufWriter, Write}};
 
 pub fn print_opengl_diagnostics() {
+	let write_file = File::create("./diagnostics.log").unwrap();
+	let mut writer = BufWriter::new(&write_file);
 	let gl_info = GLInfo::new();
-	println!("OpenGL version string : {}", gl_info.version());
 
-	println!(
+	writeln!(&mut writer, "OpenGL version string : {}", gl_info.version());
+
+	writeln!(&mut writer, 
 		"OpenGL version : {:?}.{:?}",
 		gl_info.major(),
 		gl_info.minor(),
 	);
 
-	println!(
+	writeln!(&mut writer, 
 		"GLSL version : {:?}.{:?}0",
 		gl_info.glsl_major(),
 		gl_info.glsl_minor()
@@ -22,7 +26,7 @@ pub fn print_opengl_diagnostics() {
 	let mut max_geometry_tex = 0;
 	let mut group_size = [0, 0, 0];
 	let mut max_atomic_counter_bindings = 0;
-	let mut max_atomic_counter_buffer_size = 0;
+	let mut max_atomic_counter_buffer_size = 66;
 	unsafe {
 		gl::GetIntegerv(gl::MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, &mut max_geometry_tex);
 		gl::GetIntegeri_v(gl::MAX_COMPUTE_WORK_GROUP_SIZE, 0, &mut group_size[0]);
@@ -37,36 +41,35 @@ pub fn print_opengl_diagnostics() {
 			&mut max_atomic_counter_buffer_size,
 		);
 	}
-	println!("MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
-	println!(
+	writeln!(&mut writer, "MAX_GEOMETRY_TEXTURE_IMAGE_UNITS : {}", max_geometry_tex);
+	writeln!(&mut writer, 
 		"MAX_COMPUTE_WORK_GROUP_SIZE : ({}, {}, {})",
 		group_size[0], group_size[1], group_size[2]
 	);
-	println!(
+	writeln!(&mut writer, 
 		"MAX_ATOMIC_COUNTER_BUFFER_BINDINGS : {}",
 		max_atomic_counter_bindings
 	);
 
-	println!(
+	writeln!(&mut writer, 
 		"ATOMIC_COUNTER_BUFFER_SIZE : {}",
 		max_atomic_counter_buffer_size
 	);
-
-	print_needed_extensions();
-}
-
-pub fn print_needed_extensions() {
+	
 	let i_need_these_extensions_please = vec![
 		"GL_EXT_texture3D",
 		"GL_NV_conservative_raster",
 		"GL_INTEL_conservative_rasterization",
 	];
 
-	println!("EXTENSIONS");
-	println!("----------");
+	writeln!(&mut writer, "EXTENSIONS");
+	writeln!(&mut writer, "----------");
 	for extension in i_need_these_extensions_please {
-		println!("{} : {}", extension, is_extension_supported(extension));
+		writeln!(&mut writer, "{} : {}", extension, is_extension_supported(extension));
 	}
+
+	write_file.sync_all().unwrap();
+
 }
 
 #[allow(dead_code)]

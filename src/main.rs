@@ -21,6 +21,59 @@ struct ImGuiState {
 	resolution_index: usize,
 }
 
+fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
+	use glm::vec3;
+
+	let mut resources = Resources::new();
+	renderer.submit_mesh(&Mesh::new(
+		"assets/models/test.glb",
+		vec3(0.0, 2.0, 0.0),
+		vec3(1.0, 1.0, 1.0),
+		&mut resources,
+	));
+
+	camera.position = vec3(0.0, 2.0, 10.0);
+	camera.pitch = -90.0;
+	camera.yaw = 0.0;
+}
+
+fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera) {
+	use glm::vec3;
+
+	let mut resources = Resources::new();
+	renderer.submit_mesh(&Mesh::new(
+		"assets/models/sponza.glb",
+		vec3(0.0, 0.0, 0.0),
+		vec3(1.0, 1.0, 1.0),
+		&mut resources,
+	));
+
+	camera.position = vec3(0.0, 2.0, 10.0);
+	camera.yaw = -90.0;
+	camera.pitch = 0.0;
+}
+
+fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
+	use glm::vec3;
+
+	let mut resources = Resources::new();
+	renderer.submit_mesh(&Mesh::new(
+		"assets/models/sphere.glb",
+		vec3(0.0, 5.0, 5.0),
+		vec3(1.0, 1.0, 1.0),
+		&mut resources,
+	));
+	renderer.submit_mesh(&Mesh::new(
+		"assets/models/cornell_box.glb",
+		vec3(0.0, 0.0, 0.0),
+		vec3(1.0, 1.0, 1.0),
+		&mut resources,
+	));
+	camera.position = vec3(0.0, 2.0, 10.0);
+	camera.yaw = -90.0;
+	camera.pitch = 0.0;
+}
+
 fn main() {
 	const WINDOW_TITLE: &str = "Potato Renderer 🥟";
 	let (width, height) = (1280, 720);
@@ -42,52 +95,31 @@ fn main() {
 	let mut imgui = imgui::Context::create();
 	let mut platform = WinitPlatform::init(&mut imgui);
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
-	let mut imgui_state = ImGuiState {
-		resolution_index: 0,
-	};
+	
+	let resolutions = [64, 128, 256];
+	let res_index = 1;
 
 	// Renderer setup
-	let mut renderer = renderer::Renderer::new(&window_gl, logical_size);
+	let mut renderer = renderer::Renderer::new(&window_gl, logical_size, resolutions[res_index]);
 
 	let imgui_renderer =
 		imgui_opengl_renderer::Renderer::new(&mut imgui, |s| window_gl.get_proc_address(s) as _);
 
-	let mut camera = Camera::new(glm::vec3(0.0, 2.0, 10.0), -90.0, 0.0);
+	let mut imgui_state = ImGuiState {
+		resolution_index: res_index,
+	};
+
+	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
+	cornell_scene(&mut renderer, &mut camera);
 	{
-		use glm::*;
-		let mut resources = Resources::new();
 		// renderer.submit_mesh(&Mesh::new(
 		// 	"assets/models/cube.glb",
 		// 	vec3(0.0, 0.0, 0.0),
 		// 	vec3(1.0, 1.0, 1.0),
 		// 	&mut resources,
 		// ));
-		renderer.submit_mesh(&Mesh::new(
-			"assets/models/test.glb",
-			vec3(0.0, 2.0, 0.0),
-			vec3(1.0, 1.0, 1.0),
-			&mut resources,
-		));
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/sphere.glb",
-		// 	vec3(0.0, 5.0, 5.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/cornell_box.glb",
-		// 	vec3(0.0, 0.0, 0.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
 		// renderer.submit_mesh(&Mesh::new(
 		// 	"assets/models/debug_plane.glb",
-		// 	vec3(0.0, 0.0, 0.0),
-		// 	vec3(1.0, 1.0, 1.0),
-		// 	&mut resources,
-		// ));
-		// renderer.submit_mesh(&Mesh::new(
-		// 	"assets/models/sponza.glb",
 		// 	vec3(0.0, 0.0, 0.0),
 		// 	vec3(1.0, 1.0, 1.0),
 		// 	&mut resources,
@@ -197,11 +229,10 @@ fn main() {
 								.build();
 
 							let index = &mut imgui_state.resolution_index;
-							let items = [64, 128, 256];
-							ComboBox::new(im_str!("Resolution")).build_simple(&ui, index, &items, &|x| {
+							ComboBox::new(im_str!("Resolution")).build_simple(&ui, index, &resolutions, &|x| {
 								Cow::from(im_str!("{}x{}x{}", x, x, x))
 							});
-							*volume.resolution_mut() = items[*index];
+							*volume.resolution_mut() = resolutions[*index];
 							ui.separator();
 
 							ui.radio_button(

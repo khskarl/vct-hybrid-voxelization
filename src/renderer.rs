@@ -58,6 +58,7 @@ impl Renderer {
 	pub fn new(
 		window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>,
 		logical_size: glutin::dpi::LogicalSize,
+		resolution: usize,
 	) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 		gl_set_defaults();
@@ -74,7 +75,7 @@ impl Renderer {
 
 		// Volume setup
 		let volume_view_program = load_voxel_view_program();
-		let volume_scene = Volume::new(64, &volume_view_program);
+		let volume_scene = Volume::new(resolution, &volume_view_program);
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
@@ -274,10 +275,10 @@ impl Renderer {
 			self.tri_count_buffer.bind_base(0);
 
 			let tri_count = self.tri_count_buffer.read_data_u32();
-			println!("Pre-before: {}", tri_count);
+			// println!("Pre-before: {}", tri_count);
 			self.tri_count_buffer.write_data_u32(12);
 			let tri_count = self.tri_count_buffer.read_data_u32();
-			println!("Before: {}", tri_count);
+			// println!("Before: {}", tri_count);
 
 			primitive.bind();
 
@@ -303,7 +304,7 @@ impl Renderer {
 				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 			}
 			let tri_count = self.tri_count_buffer.read_data_u32();
-			println!("After: {}", tri_count);
+			// println!("After: {}", tri_count);
 		}
 
 		unsafe {
