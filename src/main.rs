@@ -76,12 +76,6 @@ fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
 		&mut resources,
 	));
 	renderer.submit_mesh(&Mesh::new(
-		"assets/models/cube.glb",
-		vec3(0.0, 0.0, 0.0),
-		vec3(1.0, 1.0, 1.0),
-		&mut resources,
-	));
-	renderer.submit_mesh(&Mesh::new(
 		"assets/models/cornell_box.glb",
 		vec3(0.0, 0.0, 0.0),
 		vec3(1.0, 1.0, 1.0),
@@ -94,7 +88,7 @@ fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
 	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
 
-	camera.position = vec3(0.0, 2.0, 10.0);
+	camera.position = vec3(0.0, 5.0, 10.0);
 	camera.yaw = -90.0;
 	camera.pitch = 0.0;
 }

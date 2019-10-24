@@ -60,11 +60,17 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-const vec3 propagationDirections[] = {
-	vec3(0.0, 0.0, 1.0),
-	vec3(0.0, 0.866025, 0.5),
-	vec3(0.754996, -0.4330128, 0.5),
-	vec3(-0.754996, -0.4330128, 0.5)
+const vec3 CONES[] = 
+{
+	vec3(0.57735, 0.57735, 0.57735),
+	vec3(0.57735, -0.57735, -0.57735),
+	vec3(-0.57735, 0.57735, -0.57735),
+	vec3(-0.57735, -0.57735, 0.57735),
+	vec3(-0.903007, -0.182696, -0.388844),
+	vec3(-0.903007, 0.182696, 0.388844),
+	vec3(0.903007, -0.182696, 0.388844),
+	vec3(0.903007, 0.182696, -0.388844),
+	vec3(-0.388844, -0.903007, -0.182696),
 };
 
 vec3 radiance_coordinate(vec3 w_position) {
@@ -73,27 +79,23 @@ vec3 radiance_coordinate(vec3 w_position) {
 }
 
 vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 direction, float aperture) {
-	// const float voxel_size = (u_volume_scale.x / float(u_width));
-	const float voxel_size = 0.8 + u_width * 0.001;
-	const float MAX_DIST = 20.0;
-	vec3 offset = N * voxel_size;
-	vec3 origin = P + offset;
+	const float voxel_size = u_volume_scale.x / float(u_width);
+	const float MAX_DIST = 1000.0 * voxel_size;
+	vec3 origin = P + N * voxel_size * 2.0 * 1.414213;
+	// aperture = 0.325;
 
 	const float maxDistance = MAX_DIST * voxel_size;
 	vec3 color = vec3(0.0);
 	float alpha = 0.0;
-	float t = 2.0 * voxel_size;
+	float t = voxel_size;
 	while (t < maxDistance && alpha < 1.0) {
 		float diameter = max(voxel_size, 2 * aperture * t);
-		float mip = log2(diameter / voxel_size);
+		float mip = log2(diameter * (1.0 / voxel_size));
 
-		vec3 position = origin + direction * t;
-		position = radiance_coordinate(position);
+		vec3 tc = origin + direction * t;
+		tc = radiance_coordinate(tc);
 
-		if (mip >= 9)
-			break;
-
-		vec4 radiance = texture(voxels, position, mip);
+		vec4 radiance = textureLod(voxels, tc, min(mip, 5.4));
 
 		float a = 1 - alpha;
 		color += a * radiance.rgb;
@@ -187,11 +189,12 @@ void main() {
 	vec3 coordinate = radiance_coordinate(vw_position);
 
 	vec4 radiance = vec4(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec3 cone_dir = normalize(v_TBN * propagationDirections[i]);
-		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.23));
+	for(int i = 0; i < 9; i++) {
+		vec3 cone_dir = normalize(CONES[i] + normal);
+		cone_dir *= dot(cone_dir, normal) < 0 ? -1 : 1;
+		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
 	}
-	radiance /= 4.0;
+	radiance /= 9.0;
 	// vec3 radiance = texelFetch(u_radiance, coordinate, 0).rgb;
 	vec3 ambient_radiance = radiance.rgb + vec3(0.1, 0.07, 0.05) * 0.0002;
 	vec3 ambient = albedo * ambient_radiance * occlusion;
