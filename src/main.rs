@@ -208,14 +208,12 @@ fn main() {
 							});
 
 						Window::new(im_str!("Lights")).build(&ui, || {
-							let light = renderer.light(0);
-							ui.text(im_str!("Sun light:"));
-
-							ColorEdit::new(im_str!("SunColor##1"), light.color.as_mut()).build(&ui);
-							// ui.drag_float3(im_str!("SunDirection##1"), light.direction.as_mut())
-							// 	.min(-1.0)
-							// 	.max(1.0)
-							// 	.build();
+							let lights = &mut renderer.lights;
+							for (i, light) in lights.iter_mut().enumerate() {
+								ColorEdit::new(&im_str!("Color#{}", i), light.color.as_mut()).build(&ui);
+								ui.drag_float3(&im_str!("Position#{}", i), light.position.as_mut())
+									.build();
+							}
 						});
 
 						Window::new(im_str!("Voxels")).build(&ui, || {

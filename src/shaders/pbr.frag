@@ -97,7 +97,7 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 direction, float aperture) 
 		color += a * radiance.rgb;
 		alpha += a * radiance.a;
 
-		t += diameter * 0.2;
+		t += diameter * 0.5;
 	}
 
 	return vec4(color, alpha);

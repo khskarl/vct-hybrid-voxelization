@@ -39,7 +39,7 @@ pub struct Renderer {
 	materials: HashMap<String, Rc<GpuMaterial>>,
 	textures: HashMap<String, Rc<GLTexture>>,
 	pbr_program: GLProgram,
-	lights: Vec<Light>,
+	pub lights: Vec<Light>,
 	depth_map: GLTexture,
 	depth_map_framebuffer: GLFramebuffer,
 	depth_program: GLProgram,
