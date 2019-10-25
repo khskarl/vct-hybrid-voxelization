@@ -212,10 +212,10 @@ fn main() {
 							ui.text(im_str!("Sun light:"));
 
 							ColorEdit::new(im_str!("SunColor##1"), light.color.as_mut()).build(&ui);
-							ui.drag_float3(im_str!("SunDirection##1"), light.direction.as_mut())
-								.min(-1.0)
-								.max(1.0)
-								.build();
+							// ui.drag_float3(im_str!("SunDirection##1"), light.direction.as_mut())
+							// 	.min(-1.0)
+							// 	.max(1.0)
+							// 	.build();
 						});
 
 						Window::new(im_str!("Voxels")).build(&ui, || {

@@ -138,20 +138,12 @@ pub fn load_depth_texture() -> GLTexture {
 ///////////////////
 // LIGHT HELPERS //
 pub struct Light {
-	pub direction: glm::Vec3,
 	pub position: glm::Vec3,
 	pub color: glm::Vec3,
 	pub intensity: f32,
 }
 
-pub fn lights_to_soa(lights: &Vec<Light>) -> (Vec<f32>, Vec<f32>, Vec<f32>) {
-	let directions: Vec<f32> = lights
-		.iter()
-		.map(|l| l.direction.into_iter())
-		.flatten()
-		.cloned()
-		.collect();
-
+pub fn lights_to_soa(lights: &Vec<Light>) -> (Vec<f32>, Vec<f32>) {
 	let positions: Vec<f32> = lights
 		.iter()
 		.map(|l| l.position.into_iter())
@@ -168,25 +160,22 @@ pub fn lights_to_soa(lights: &Vec<Light>) -> (Vec<f32>, Vec<f32>, Vec<f32>) {
 		.cloned()
 		.collect();
 
-	(directions, positions, colors)
+	(positions, colors)
 }
 
 pub fn load_lights() -> Vec<Light> {
 	let mut lights = Vec::new();
 	lights.push(Light {
-		direction: glm::vec3(0.4, -0.9, -0.2),
-		position: glm::vec3(0.0, 2.0, 0.0),
-		color: glm::vec3(1.0, 1.0, 1.0),
+		position: glm::vec3(1.0, 2.0, 0.0),
+		color: glm::vec3(0.3, 0.1, 0.6),
 		intensity: 4.0,
 	});
 	lights.push(Light {
-		direction: glm::vec3(0.0, 0.0, 0.0),
 		position: glm::vec3(0.0, 9.0, 0.0),
 		color: glm::vec3(1.0, 1.0, 1.0),
 		intensity: 5.0,
 	});
 	lights.push(Light {
-		direction: glm::vec3(0.0, 0.0, 0.0),
 		position: glm::vec3(-9.0, 2.0, 0.0),
 		color: glm::vec3(0.823, 0.117, 0.568),
 		intensity: 1.0,
@@ -198,7 +187,7 @@ pub fn load_lights() -> Vec<Light> {
 pub fn light_matrix(light: &Light) -> [f32; 16] {
 	let light_view = glm::look_at_rh(
 		&light.position,
-		&(light.position + light.direction),
+		&(light.position + glm::vec3(0.0, -1.0, 1.0)),
 		&glm::vec3(0.0, 1.0, 0.0),
 	);
 	let light_proj = glm::ortho_rh_zo(-20.0, 10.0, -20.0, 20.0, 1.0, 20.0);

@@ -72,6 +72,7 @@ impl Renderer {
 
 		let depth_map = load_depth_texture();
 		let depth_map_framebuffer = GLFramebuffer::new(&depth_map, &[Attachment::Depth], 0);
+		depth_map_framebuffer.unbind();
 
 		// Volume setup
 		let volume_view_program = load_voxel_view_program();
@@ -101,6 +102,7 @@ impl Renderer {
 		}
 	}
 
+	#[allow(dead_code)]
 	fn render_to_shadow_map(&self) {
 		gl_set_cull_face(CullFace::Front);
 		gl_set_depth_write(true);
@@ -149,12 +151,8 @@ impl Renderer {
 
 		self
 			.inject_program
-			.get_uniform("u_light_matrix")
-			.set_mat4f(&light_matrix(&self.lights[0]));
-		self
-			.inject_program
-			.get_uniform("u_light_direction")
-			.set_3f(1, &self.lights[0].direction.into());
+			.get_uniform("u_light_position")
+			.set_3f(1, &self.lights[0].position.into());
 		self
 			.inject_program
 			.get_uniform("u_light_color")
@@ -164,24 +162,12 @@ impl Renderer {
 		self.volume_scene.bind_texture_normal(1);
 		self.volume_scene.bind_texture_emission(2);
 		self.volume_scene.bind_image_radiance(3);
-		self
-			.inject_program
-			.get_uniform("u_shadow_map")
-			.set_sampler_2d(&self.depth_map, 4);
 
-		let resolution = self.volume_scene.resolution();
+		let resolution = self.volume_scene.resolution() as i32;
 		self
 			.inject_program
-			.get_uniform("u_width")
-			.set_1i(resolution as i32);
-		self
-			.inject_program
-			.get_uniform("u_height")
-			.set_1i(resolution as i32);
-		self
-			.inject_program
-			.get_uniform("u_depth")
-			.set_1i(resolution as i32);
+			.get_uniform("u_resolution")
+			.set_3i(1, &[resolution, resolution, resolution]);
 
 		let translation = glm::translation(self.volume_scene.translation());
 		let scaling = glm::scaling(self.volume_scene.scaling());
@@ -374,7 +360,7 @@ impl Renderer {
 
 	pub fn render(&mut self, camera: &Camera) {
 		self.timer.begin_frame();
-		self.render_to_shadow_map();
+		// self.render_to_shadow_map();
 
 		self.voxelize();
 		self.inject_light();
@@ -440,17 +426,10 @@ impl Renderer {
 		program.get_uniform("pv").set_mat4f(&proj_view);
 
 		program
-			.get_uniform("light_matrix")
-			.set_mat4f(&light_matrix(&self.lights[0]));
-		program
-			.get_uniform("shadow_map")
-			.set_sampler_2d(&self.depth_map, 4);
-
-		program
 			.get_uniform("u_width")
 			.set_1i(self.volume_scene.resolution() as i32);
 
-		self.volume_scene.bind_texture_radiance(5);
+		self.volume_scene.bind_texture_radiance(4);
 
 		let position = *self.volume_scene.translation();
 		let scale = *self.volume_scene.scaling();
@@ -462,11 +441,8 @@ impl Renderer {
 			.get_uniform("u_volume_scale")
 			.set_3f(1, &scale.into());
 
-		//
-		let (directions, positions, colors) = lights_to_soa(&self.lights);
-		program
-			.get_uniform("light_direction")
-			.set_3fv(&directions[..]);
+		let (positions, colors) = lights_to_soa(&self.lights);
+
 		program
 			.get_uniform("light_position")
 			.set_3fv(&positions[..]);
@@ -493,22 +469,10 @@ impl Renderer {
 				.set_mat4f(&primitive.model_matrix_raw());
 
 			let mat = &primitive.material();
-			self
-				.pbr_program
-				.get_uniform("albedo_map")
-				.set_sampler_2d(&mat.albedo(), 0);
-			self
-				.pbr_program
-				.get_uniform("metaghness_map")
-				.set_sampler_2d(&mat.metaghness(), 1);
-			self
-				.pbr_program
-				.get_uniform("normal_map")
-				.set_sampler_2d(&mat.normal(), 2);
-			self
-				.pbr_program
-				.get_uniform("occlusion_map")
-				.set_sampler_2d(&mat.occlusion(), 3);
+			mat.albedo().bind_unit(0);
+			mat.metaghness().bind_unit(1);
+			mat.normal().bind_unit(2);
+			mat.occlusion().bind_unit(3);
 
 			gl_draw_elements(
 				DrawMode::Triangles,

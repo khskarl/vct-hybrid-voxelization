@@ -17,12 +17,11 @@ uniform vec3 u_volume_center;
 uniform vec3 u_volume_scale;
 uniform int u_width;
 
-uniform sampler2D albedo_map;
-uniform sampler2D metaghness_map;
-uniform sampler2D normal_map;
-uniform sampler2D occlusion_map;
-uniform sampler2D shadow_map;
-uniform layout(binding = 5) sampler3D u_radiance;
+uniform layout(binding = 0) sampler2D albedo_map;
+uniform layout(binding = 1) sampler2D metaghness_map;
+uniform layout(binding = 2) sampler2D normal_map;
+uniform layout(binding = 3) sampler2D occlusion_map;
+uniform layout(binding = 4) sampler3D u_radiance;
 
 in vec3 vw_position;
 in vec2 v_uv;
@@ -146,25 +145,8 @@ void main() {
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metalness);
 
-	float shadow = shadow_visilibity_pcf(shadow_map, vl_position);
-
 	vec3 direct = vec3(0.0);
-	for(int i = 0; i < min(1, num_lights); i++) {
-		vec3 radiance = direct_lighting(
-			light_direction[i],
-			light_color[i],
-			albedo,
-			roughness,
-			metalness,
-			normal,
-			occlusion,
-			V,
-			F0
-		);
-
-		direct += radiance * (1.0 - shadow);
-	}
-	for(int i = 1; i < num_lights; i++) {
+	for(int i = 0; i < num_lights; i++) {
 		vec3 Li = vw_position.xyz - light_position[i];
 		float dist = length(Li);
 		float attenuation = 0.1 * dist * dist;
