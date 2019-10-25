@@ -166,20 +166,20 @@ pub fn lights_to_soa(lights: &Vec<Light>) -> (Vec<f32>, Vec<f32>) {
 pub fn load_lights() -> Vec<Light> {
 	let mut lights = Vec::new();
 	lights.push(Light {
-		position: glm::vec3(1.0, 2.0, 0.0),
-		color: glm::vec3(0.3, 0.1, 0.6),
-		intensity: 4.0,
-	});
-	lights.push(Light {
-		position: glm::vec3(0.0, 9.0, 0.0),
-		color: glm::vec3(1.0, 1.0, 1.0),
-		intensity: 5.0,
-	});
-	lights.push(Light {
-		position: glm::vec3(-9.0, 2.0, 0.0),
-		color: glm::vec3(0.823, 0.117, 0.568),
+		position: glm::vec3(-2.5, 9.0, 0.0),
+		color: glm::vec3(0.93, 0.619, 0.113),
 		intensity: 1.0,
 	});
+	lights.push(Light {
+		position: glm::vec3(2.5, 9.0, 0.0),
+		color: glm::vec3(0.3, 0.1, 0.6),
+		intensity: 1.0,
+	});
+	// lights.push(Light {
+	// 	position: glm::vec3(-9.0, 2.0, 0.0),
+	// 	color: glm::vec3(0.823, 0.117, 0.568),
+	// 	intensity: 1.0,
+	// });
 
 	lights
 }

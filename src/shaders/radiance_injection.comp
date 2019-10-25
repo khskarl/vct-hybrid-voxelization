@@ -1,4 +1,5 @@
 #version 450 core
+#define MAX_LIGHTS 4
 // #include <shared.glsl>
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
@@ -8,15 +9,33 @@ layout (binding = 1) uniform sampler3D u_voxel_normal;
 layout (binding = 2) uniform sampler3D u_voxel_emission;
 layout (binding = 3, rgba8) uniform image3D u_voxel_radiance;
 
+
+uniform vec3 u_volume_center;
+uniform vec3 u_volume_scale;
 uniform ivec3 u_resolution;
-uniform mat4 u_model;
 
-uniform vec3 u_light_position;
-uniform vec3 u_light_color;
+uniform vec3 u_light_position[MAX_LIGHTS];
+uniform vec3 u_light_color[MAX_LIGHTS];
+uniform int u_num_lights;
 
-vec4 direct_lighting(vec3 position, vec3 normal, vec3 albedo) {
-	float visibility = 1.0;
-	vec3 light_direction = normalize(position - u_light_position);
+
+vec3 radiance_coordinate(vec3 w_position) {
+	vec3 volume_corner = u_volume_center - u_volume_scale * 0.505;
+	return (((w_position - volume_corner) / (u_volume_scale)));
+}
+
+ivec3 image_coordinate(vec3 w_position) {
+	return ivec3(radiance_coordinate(w_position) * u_resolution);
+}
+
+vec3 world_coordinate(ivec3 image_position) {
+	return (vec3(image_position) / vec3(u_resolution)) * u_volume_scale + u_volume_center - u_volume_scale * 0.505;
+}
+
+vec3 direct_lighting(vec3 Li, vec3 normal) {
+	float dist = length(Li);
+	float attenuation = 0.9 * dist;
+	vec3 light_direction = normalize(Li);
 
 	// calculate directional normal attenuation
 	float XdotL = dot(vec3(1.0, 0.0, 0.0), light_direction);
@@ -29,10 +48,12 @@ vec4 direct_lighting(vec3 position, vec3 normal, vec3 albedo) {
 
 	vec3 weight = normal * normal;
 	float NdotL = XdotL * weight.x + YdotL * weight.y + ZdotL * weight.z;
+	NdotL = dot(light_direction, normal);
 
-	vec3 radiance = u_light_color * albedo * NdotL * visibility * 0.0001 + vec3(visibility);
+	float visibility = 1.0 / max(1.0, attenuation);
+	vec3 radiance = vec3(NdotL) * visibility;
 
-	return vec4(radiance, visibility);
+	return radiance;
 }
 
 const float PI = 3.14159265f;
@@ -47,31 +68,32 @@ void main() {
 		return;
 	float voxel_size = (1.0 / float(u_resolution.x));
 
-	ivec3 coordinate = ivec3(gl_GlobalInvocationID);
-	// coordinate.x = u_width - coordinate.x;
-	// coordinate.y = u_height - coordinate.y;
-	// coordinate.z = u_depth - coordinate.z;
-	vec4 albedo = texelFetch(u_voxel_albedo, coordinate, 0);
+	ivec3 voxel_coordinate = ivec3(gl_GlobalInvocationID);
+
+	vec4 albedo = texelFetch(u_voxel_albedo, voxel_coordinate, 0);
 
 	if(albedo.a < EPSILON)
 		return;
 
-	vec3 normal = texelFetch(u_voxel_normal, coordinate, 0).rgb;
+	vec3 normal = texelFetch(u_voxel_normal, voxel_coordinate, 0).rgb;
 	normal = normalize(decode_normal(normal));
 
-	vec3 emission = texelFetch(u_voxel_emission, coordinate, 0).rgb;
+	vec3 emission = texelFetch(u_voxel_emission, voxel_coordinate, 0).rgb;
 
 	// black voxel has no irradiance diffuse
 	if(any(greaterThan(albedo.rgb, vec3(0.0)))) {
-		// obtain world-space position of the current voxel
-		vec3 position = vec3(coordinate) / vec3(u_resolution);
-		// vec3 w_position = position * 2.0 - 1.0;
-		vec3 w_position = vec3(u_model * vec4(coordinate, 1.0)) + position * 0.0001;
+		vec3 w_voxel_position = world_coordinate(voxel_coordinate);
 
-		// calculate direct lighting onto voxel
-		vec4 radiance = direct_lighting(w_position, normal, albedo.rgb);
+		vec3 radiance = vec3(0.0);
+		for(int i = 0; i < u_num_lights; i++) {
+			vec3 Li = u_light_position[i] - w_voxel_position;
 
-		imageStore(u_voxel_radiance, coordinate, vec4(radiance.rgb * 0.001 + emission, 1.0));
+			if (length(Li) < 20.0) {
+				radiance += direct_lighting(Li, normal) * u_light_color[i] * albedo.rgb;
+			}
+		}
+
+		imageStore(u_voxel_radiance, voxel_coordinate, vec4(radiance.rgb, 1.0));
 		// imageStore(u_voxel_radiance, coordinate, vec4(radiance.rgb * 0.001 + position, 1.0));
 	}
 }

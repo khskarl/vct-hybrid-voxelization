@@ -149,14 +149,20 @@ impl Renderer {
 	fn inject_light(&self) {
 		self.inject_program.bind();
 
+		let (positions, colors) = lights_to_soa(&self.lights);
+
 		self
 			.inject_program
 			.get_uniform("u_light_position")
-			.set_3f(1, &self.lights[0].position.into());
+			.set_3fv(&positions[..]);
 		self
 			.inject_program
 			.get_uniform("u_light_color")
-			.set_3f(1, &self.lights[0].color.into());
+			.set_3fv(&colors[..]);
+		self
+			.inject_program
+			.get_uniform("u_num_lights")
+			.set_1i(self.lights.len() as i32);
 
 		self.volume_scene.bind_texture_albedo(0);
 		self.volume_scene.bind_texture_normal(1);
@@ -169,14 +175,17 @@ impl Renderer {
 			.get_uniform("u_resolution")
 			.set_3i(1, &[resolution, resolution, resolution]);
 
-		let translation = glm::translation(self.volume_scene.translation());
-		let scaling = glm::scaling(self.volume_scene.scaling());
-		let model = scaling;
+		let position = *self.volume_scene.translation();
+		let scale = *self.volume_scene.scaling();
 
 		self
 			.inject_program
-			.get_uniform("u_model")
-			.set_mat4f(<&[f32; 16]>::try_from(model.as_slice()).unwrap());
+			.get_uniform("u_volume_center")
+			.set_3f(1, &position.into());
+		self
+			.inject_program
+			.get_uniform("u_volume_scale")
+			.set_3f(1, &scale.into());
 
 		unsafe {
 			gl::DispatchCompute(
@@ -380,7 +389,7 @@ impl Renderer {
 
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
-		self.render_bounds(camera);
+		// self.render_bounds(camera);
 		self.timer.end_frame();
 	}
 
