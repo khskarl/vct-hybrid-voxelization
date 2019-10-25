@@ -1,10 +1,10 @@
 use crate::gpu_model::GpuPrimitive;
+use crate::renderer_utils::*;
 use gl;
 use gl_helpers::*;
 use glm::UVec3;
 use nalgebra_glm as glm;
 use std::mem;
-use crate::renderer_utils::*;
 
 pub struct Volume {
 	albedo_id: u32,
@@ -28,10 +28,10 @@ impl Volume {
 		);
 
 		Volume {
-			albedo_id: allocate_texture_3D(resolution, 1),
-			normal_id: allocate_texture_3D(resolution, 1),
-			emission_id: allocate_texture_3D(resolution, 1),
-			radiance_id: allocate_texture_3D(resolution, 9),
+			albedo_id: allocate_texture_3d(resolution, 1),
+			normal_id: allocate_texture_3d(resolution, 1),
+			emission_id: allocate_texture_3d(resolution, 1),
+			radiance_id: allocate_texture_3d(resolution, 6),
 			resolution,
 			primitive,
 			translation: glm::Vec3::new(0.0, 5.0, 0.0),
@@ -150,13 +150,12 @@ impl Volume {
 			// gl::GenerateTextureMipmap(self.emission_id());
 			// gl::GenerateTextureMipmap(self.radiance_id());
 			// gl::GenerateTextureMipmap(self.radiance_id());
-			// gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
-			// gl::GenerateMipmap(gl::TEXTURE_3D);
+			gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
+			gl::GenerateMipmap(gl::TEXTURE_3D);
 		}
 
 		// self.mipmap_program.bind();
 
-		
 		// gl::ActiveTexture(gl::TEXTURE0 + index);
 		// gl::BindTexture(gl::TEXTURE_3D, self.radiance_id());
 
@@ -218,7 +217,7 @@ impl Volume {
 	}
 }
 
-pub fn allocate_texture_3D(resolution: usize, mipmap: usize) -> u32 {
+pub fn allocate_texture_3d(resolution: usize, mipmap: usize) -> u32 {
 	use gl::*;
 
 	let mut handle = 0;
@@ -228,8 +227,8 @@ pub fn allocate_texture_3D(resolution: usize, mipmap: usize) -> u32 {
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_S, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_T, CLAMP_TO_EDGE as i32);
 		TexParameteri(TEXTURE_3D, TEXTURE_WRAP_R, CLAMP_TO_EDGE as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR as i32);
-		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_MIN_FILTER, LINEAR_MIPMAP_LINEAR as i32);
+		TexParameteri(TEXTURE_3D, TEXTURE_MAG_FILTER, LINEAR_MIPMAP_LINEAR as i32);
 
 		let mut pixels = Vec::<[u8; 4]>::new();
 		for i in 0..resolution * resolution * resolution {

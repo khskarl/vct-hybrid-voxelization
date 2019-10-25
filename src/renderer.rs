@@ -382,7 +382,9 @@ impl Renderer {
 		self.volume_scene.generate_mipmap();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
-		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
+		// gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
+		gl_set_clear_color(&[0.02, 0.015, 0.01, 1.0]);
+
 		gl_set_depth_write(true);
 		gl_clear(true, true, true);
 
@@ -447,10 +449,11 @@ impl Renderer {
 		program
 			.get_uniform("u_width")
 			.set_1i(self.volume_scene.resolution() as i32);
+
 		self.volume_scene.bind_texture_radiance(5);
 
-		let position = self.volume_scene.translation().clone();
-		let scale = self.volume_scene.scaling().clone();
+		let position = *self.volume_scene.translation();
+		let scale = *self.volume_scene.scaling();
 
 		program
 			.get_uniform("u_volume_center")
