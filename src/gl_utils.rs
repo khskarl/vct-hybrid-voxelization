@@ -2,22 +2,24 @@ use gl_helpers::*;
 
 use std::ffi::CStr;
 use std::str;
-use std::{fs::File, io::{BufWriter, Write}};
+use std::{
+	fs::File,
+	io::{BufWriter, Write},
+};
 
 pub fn print_opengl_diagnostics() {
 	let write_file = File::create("./diagnostics2.log").unwrap();
-	let mut writer = BufWriter::new(&write_file);
 	let gl_info = GLInfo::new();
 
-	writeln!(&mut writer, "OpenGL version string : {}", gl_info.version());
+	println!("OpenGL version string : {}", gl_info.version());
 
-	writeln!(&mut writer, 
+	println!(
 		"OpenGL version : {:?}.{:?}",
 		gl_info.major(),
 		gl_info.minor(),
 	);
 
-	writeln!(&mut writer, 
+	println!(
 		"GLSL version : {:?}.{:?}0",
 		gl_info.glsl_major(),
 		gl_info.glsl_minor()
@@ -41,45 +43,46 @@ pub fn print_opengl_diagnostics() {
 			gl::MAX_ATOMIC_COUNTER_BUFFER_SIZE,
 			&mut max_atomic_counter_buffer_size,
 		);
-		
+
 		gl::GetIntegerv(
 			gl::MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS,
 			&mut max_geom_ac_buffers,
 		);
 	}
-	writeln!(&mut writer, "MAX_GEOMETRY_TEXAAAAAAAAAAAAATURE_IMAGE_UNITS : {}", max_geometry_tex);
-	writeln!(&mut writer, 
+	println!(
+		"MAX_GEOMETRY_TEXAAAAAAAAAAAAATURE_IMAGE_UNITS : {}",
+		max_geometry_tex
+	);
+	println!(
 		"MAX_COMPUTE_WORK_GROUP_SIZE : ({}, {}, {})",
 		group_size[0], group_size[1], group_size[2]
 	);
-	writeln!(&mut writer, 
+	println!(
 		"MAX_ATOMIC_COUNTER_BUFFER_BINDINGS : {}",
 		max_atomic_counter_bindings
 	);
 
-	writeln!(&mut writer, 
+	println!(
 		"MAX_ATOMIC_COUNTER_BUFFER_SIZE : {}",
 		max_atomic_counter_buffer_size
 	);
-	
-	writeln!(&mut writer, 
+
+	println!(
 		"MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS : {}",
 		max_geom_ac_buffers
 	);
-	
+
 	let i_need_these_extensions_please = vec![
 		"GL_EXT_texture3D",
 		"GL_NV_conservative_raster",
 		"GL_INTEL_conservative_rasterization",
 	];
 
-	writeln!(&mut writer, "EXTENSIONS");
-	writeln!(&mut writer, "----------");
+	println!("EXTENSIONS");
+	println!("----------");
 	for extension in i_need_these_extensions_please {
-		writeln!(&mut writer, "{} : {}", extension, is_extension_supported(extension));
+		println!("{} : {}", extension, is_extension_supported(extension));
 	}
-
-	write_file.sync_all().unwrap();
 }
 
 #[allow(dead_code)]

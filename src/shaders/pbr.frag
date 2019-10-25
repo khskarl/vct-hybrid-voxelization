@@ -194,6 +194,6 @@ void main() {
 	radiance /= 9.0;
 	vec3 ambient_radiance = radiance.rgb + vec3(0.1, 0.07, 0.05) * 0.0002;
 	vec3 ambient = albedo * ambient_radiance * occlusion * 0.0001 + ambient_radiance;
-	vec3 color = (direct* 0.0001 + ambient);
+	vec3 color = (direct + ambient);
 	out_color = vec4(color, 1.0);
 }
