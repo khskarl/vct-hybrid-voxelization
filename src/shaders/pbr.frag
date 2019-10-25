@@ -89,16 +89,16 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 direction, float aperture) 
 	float t = voxel_size;
 	while (t < maxDistance && alpha < 1.0) {
 		float diameter = max(voxel_size, 2.0 * aperture * t);
-		float mip = log2(diameter * voxel_size);
+		float mip = log2(diameter * voxel_size * 400.0);
 
 		vec3 tc = origin + direction * t;
-		vec4 radiance = textureLod(voxels, tc, min(mip, 5.4));
+		vec4 radiance = textureLod(voxels, tc, min(mip, 6.0));
 
 		float a = 1 - alpha;
 		color += a * radiance.rgb;
 		alpha += a * radiance.a;
 
-		t += diameter * 0.8;
+		t += diameter * 0.2;
 	}
 
 	return vec4(color, alpha);

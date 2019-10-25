@@ -114,7 +114,7 @@ fn main() {
 	let mut imgui = imgui::Context::create();
 	let mut platform = WinitPlatform::init(&mut imgui);
 	platform.attach_window(imgui.io_mut(), &window_gl.window(), HiDpiMode::Default);
-	
+
 	let resolutions = [64, 128, 256];
 	let res_index = 0;
 
@@ -317,8 +317,12 @@ fn main() {
 			Event::EventsCleared => {
 				update_camera(&mut camera, dt, &key_states);
 				let primitives = renderer.primitives_mut();
+
+				primitives[0].translation_mut().as_mut()[1] =
+					initial_time.elapsed().as_secs_f32().cos() * 2.0 + 2.0;
+
 				primitives[0].translation_mut().as_mut()[2] =
-					initial_time.elapsed().as_secs_f32().sin() * 2.0 + 3.0;
+					initial_time.elapsed().as_secs_f32().sin() * 1.5 + 2.0;
 
 				dt = Instant::now()
 					.duration_since(start_frame_time)
