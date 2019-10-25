@@ -88,7 +88,7 @@ vec4 ConeTrace(sampler3D voxels, vec3 P,vec3 N, vec3 direction, float aperture) 
 	float t = voxel_size;
 	while (t < maxDistance && alpha < 1.0) {
 		float diameter = max(voxel_size, 2.0 * aperture * t);
-		float mip = log2(diameter * voxel_size * 400.0);
+		float mip = log2(diameter * voxel_size * 500.0);
 
 		vec3 tc = origin + direction * t;
 		vec4 radiance = textureLod(voxels, tc, min(mip, 6.0));
@@ -165,7 +165,6 @@ void main() {
 
 		direct += radiance / attenuation;
 	}
-	vec3 coordinate = radiance_coordinate(vw_position);
 
 	vec4 radiance = vec4(0.0);
 	for(int i = 0; i < 9; i++) {
@@ -176,6 +175,6 @@ void main() {
 	radiance /= 9.0;
 	vec3 ambient_radiance = radiance.rgb + vec3(0.1, 0.07, 0.05) * 0.0002;
 	vec3 ambient = albedo * ambient_radiance * occlusion;
-	vec3 color = (direct + ambient);
+	vec3 color = (direct + ambient * 2.0);
 	out_color = vec4(color, 1.0);
 }

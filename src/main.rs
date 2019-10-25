@@ -71,7 +71,7 @@ fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	let mut resources = Resources::new();
 	renderer.submit_mesh(&Mesh::new(
 		"assets/models/sphere.glb",
-		vec3(0.0, 5.0, 5.0),
+		vec3(0.0, 1.4, 5.0),
 		vec3(1.0, 1.0, 1.0),
 		&mut resources,
 	));
@@ -316,11 +316,11 @@ fn main() {
 				update_camera(&mut camera, dt, &key_states);
 				let primitives = renderer.primitives_mut();
 
-				primitives[0].translation_mut().as_mut()[1] =
-					initial_time.elapsed().as_secs_f32().cos() * 2.0 + 2.0;
+				primitives[0].translation_mut().as_mut()[0] =
+					initial_time.elapsed().as_secs_f32().cos() * 3.5;
 
 				primitives[0].translation_mut().as_mut()[2] =
-					initial_time.elapsed().as_secs_f32().sin() * 1.5 + 2.0;
+					initial_time.elapsed().as_secs_f32().sin() * 3.5;
 
 				dt = Instant::now()
 					.duration_since(start_frame_time)
