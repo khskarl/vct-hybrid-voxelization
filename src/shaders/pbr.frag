@@ -149,7 +149,8 @@ void main() {
 	for(int i = 0; i < num_lights; i++) {
 		vec3 Li = vw_position.xyz - light_position[i];
 		float dist = length(Li);
-		float attenuation = 0.05 * dist * dist;
+		float attenuation = 1.0 / (1.0 + 2.0 * dist + 0.5 * dist * dist);
+		attenuation = clamp(attenuation, 0.0, 1.0);
 
 		vec3 radiance = direct_lighting(
 			Li,
@@ -163,7 +164,7 @@ void main() {
 			F0
 		);
 
-		direct += radiance / attenuation;
+		direct += 20.0 * radiance * attenuation;
 	}
 
 	vec4 radiance = vec4(0.0);
@@ -173,8 +174,9 @@ void main() {
 		radiance += ConeTrace(u_radiance, vw_position, normal, cone_dir, tan(PI * 0.5 * 0.33));
 	}
 	radiance /= 9.0;
-	vec3 ambient_radiance = radiance.rgb + vec3(0.1, 0.07, 0.05) * 0.0002;
+
+	vec3 ambient_radiance = radiance.rgb;
 	vec3 ambient = albedo * ambient_radiance * occlusion;
-	vec3 color = (direct + ambient * 2.0);
+	vec3 color = (direct + ambient * 1.0);
 	out_color = vec4(color, 1.0);
 }
