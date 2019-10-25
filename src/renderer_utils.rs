@@ -228,3 +228,54 @@ pub fn voxelization_pv(volume: &Volume) -> [f32; 16] {
 
 	pv
 }
+
+pub struct AtomicCounter {
+	handle: u32,
+}
+
+impl AtomicCounter {
+	pub fn new() -> AtomicCounter {
+		use gl::types::*;
+
+		let mut handle = 0;
+		let data = [0u32];
+
+		unsafe {
+			gl::GenBuffers(1, &mut handle);
+			gl::BindBuffer(gl::ATOMIC_COUNTER_BUFFER, handle);
+			gl::BufferData(
+				gl::ATOMIC_COUNTER_BUFFER,
+				4,
+				data.as_ptr() as *const GLvoid,
+				gl::DYNAMIC_DRAW,
+			);
+			gl::BindBuffer(gl::ATOMIC_COUNTER_BUFFER, 0);
+		}
+
+		AtomicCounter { handle }
+	}
+
+	pub fn bind_unit(&self, unit: u32) {
+		unsafe {
+			gl::BindBufferBase(gl::ATOMIC_COUNTER_BUFFER, unit, self.handle);
+		}
+	}
+
+	pub fn set_value(&self, value: u32) {
+		unsafe {
+			gl::BindBuffer(gl::ATOMIC_COUNTER_BUFFER, self.handle);
+			let c_ptr = gl::MapBufferRange(
+				gl::ATOMIC_COUNTER_BUFFER,
+				0,
+				4,
+				gl::MAP_WRITE_BIT | gl::MAP_INVALIDATE_BUFFER_BIT | gl::MAP_UNSYNCHRONIZED_BIT,
+			);
+
+			let ptr = c_ptr as *mut u32;
+			*ptr = value;
+
+			gl::UnmapBuffer(gl::ATOMIC_COUNTER_BUFFER);
+			gl::BindBuffer(gl::ATOMIC_COUNTER_BUFFER, 0);
+		}
+	}
+}

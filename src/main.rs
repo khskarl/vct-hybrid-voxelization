@@ -28,19 +28,19 @@ fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	renderer.submit_mesh(&Mesh::new(
 		"assets/models/test.glb",
 		vec3(0.0, 2.0, 0.0),
-		vec3(1.0, 1.0, 1.0),
+		vec3(2.0, 2.0, 2.0),
 		&mut resources,
 	));
 
 	let volume = renderer.volume_mut();
-	*volume.translation_mut() = vec3(0.0, 0.0, 0.0);
+	*volume.translation_mut() = vec3(0.0, 5.0, 0.0);
 	*volume.scaling_mut() = vec3(10.0, 10.0, 10.0);
 	*volume.view_translation_mut() = vec3(10.15, 5.0, 0.0);
 	*volume.view_scaling_mut() = vec3(10.0, 10.0, 10.0);
 
-	camera.position = vec3(0.0, 2.0, 10.0);
-	camera.pitch = -90.0;
-	camera.yaw = 0.0;
+	camera.position = vec3(5.0, 2.0, 10.0);
+	camera.yaw = -90.0;
+	camera.pitch = 0.0;
 }
 
 fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera) {
@@ -129,8 +129,9 @@ fn main() {
 	};
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
-	cornell_scene(&mut renderer, &mut camera);
+	// cornell_scene(&mut renderer, &mut camera);
 	// sponza_scene(&mut renderer, &mut camera);
+	test_scene(&mut renderer, &mut camera);
 
 	let mut key_states = KeyStates::new();
 

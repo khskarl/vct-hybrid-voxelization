@@ -102,7 +102,7 @@ vec3 barycentric_coordinates(vec3 v0, vec3 v1, vec3 v2, vec3 p) {
 	return vec3(u, v, w);
 }
 
-void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, ivec3 minVoxIndex, ivec3 maxVoxIndex)
+void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, ivec3 minVoxIndex, ivec3 maxVoxIndex, uint index)
 {
 	vec3 v0s = unswizzle * v0;
 	vec3 v1s = unswizzle * v1;
@@ -204,7 +204,8 @@ void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, i
 						vec3 normal = encode_normal(bary.x * n0 + bary.y * n1 + bary.z * n2);
 
 						vec3 albedo = texture(albedo_map, uv).rgb;
-						albedo = albedo * 0.0001 + vec3(float(atomicCounter(u_large_tri_count)) / 6.0);
+						albedo = albedo * 0.0001;
+						albedo += vec3(float(index * 42) / 255.0);
 
 						imageStore(u_voxel_albedo, ivec3(ps), vec4(albedo, 1.0));
 
@@ -232,8 +233,7 @@ void main() {
 	int classification = classifyTriPostSwizzle(v0, v1, v2, 0.2);
 
 	// if(classification == LARGE) {
-		// uint index = uint(atomicCounterIncrement(u_large_tri_count));
-	memoryBarrier();
+		uint index = uint(atomicCounterIncrement(u_large_tri_count));
 
 		// imageStore(largeIdx, 3*index+1, uvec4(v_in[1].id));
 		// imageStore(largeIdx, 3*index+2, uvec4(v_in[2].id));
@@ -244,7 +244,7 @@ void main() {
 		ivec3 minVoxIndex = ivec3(clamp(floor(AABBmin), ivec3(0), u_resolution));
 		ivec3 maxVoxIndex = ivec3(clamp( ceil(AABBmax), ivec3(0), u_resolution));
 
-		voxelizeTriPostSwizzle(v0, v1, v2, n, swizzle, minVoxIndex, maxVoxIndex);
+		voxelizeTriPostSwizzle(v0, v1, v2, n, swizzle, minVoxIndex, maxVoxIndex, index);
 	// }
 
 

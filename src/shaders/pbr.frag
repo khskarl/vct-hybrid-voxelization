@@ -164,7 +164,7 @@ void main() {
 			F0
 		);
 
-		direct += 20.0 * radiance * attenuation;
+		direct += 150.0 * radiance * attenuation;
 	}
 
 	vec4 radiance = vec4(0.0);

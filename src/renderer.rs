@@ -50,7 +50,7 @@ pub struct Renderer {
 	bounds_program: GLProgram,
 	clear_program: GLProgram,
 	inject_program: GLProgram,
-	tri_count_buffer: GLBuffer,
+	triangle_counter: AtomicCounter,
 	timer: GlTimer,
 }
 
@@ -80,8 +80,8 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Radiance,
-			voxelization_mode: VoxelizationMode::FragmentOnly,
+			rendering_mode: RenderingMode::Albedo,
+			voxelization_mode: VoxelizationMode::Hybrid,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
 			textures: HashMap::new(),
@@ -97,7 +97,7 @@ impl Renderer {
 			bounds_program: load_bounds_program(),
 			clear_program: load_clear_program(),
 			inject_program: load_radiance_injection_program(),
-			tri_count_buffer: GLBuffer::new(BufferTarget::AtomicCounter, 0, Usage::DynamicDraw, &[999]),
+			triangle_counter: AtomicCounter::new(),
 			timer: GlTimer::new(10, 1200),
 		}
 	}
@@ -264,14 +264,11 @@ impl Renderer {
 		self.volume_scene.bind_image_albedo(0);
 		self.volume_scene.bind_image_normal(1);
 		self.volume_scene.bind_image_emission(2);
-		for primitive in &self.primitives {
-			self.tri_count_buffer.bind_base(0);
 
-			let tri_count = self.tri_count_buffer.read_data_u32();
-			// println!("Pre-before: {}", tri_count);
-			self.tri_count_buffer.write_data_u32(12);
-			let tri_count = self.tri_count_buffer.read_data_u32();
-			// println!("Before: {}", tri_count);
+		self.triangle_counter.bind_unit(0);
+
+		for primitive in &self.primitives {
+			self.triangle_counter.set_value(0);
 
 			primitive.bind();
 
@@ -296,7 +293,7 @@ impl Renderer {
 			unsafe {
 				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 			}
-			let tri_count = self.tri_count_buffer.read_data_u32();
+			// let tri_count = self.tri_count_buffer.read_data_u32();
 			// println!("After: {}", tri_count);
 		}
 
@@ -306,7 +303,7 @@ impl Renderer {
 		}
 		self.timer.end("voxelize_hybrid_triangle");
 
-		self.tri_count_buffer.unbind();
+		// self.tri_count_buffer.unbind();
 	}
 
 	fn voxelize_fragment(&self) {
@@ -377,8 +374,8 @@ impl Renderer {
 		self.volume_scene.generate_mipmap();
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
-		// gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
-		gl_set_clear_color(&[0.02, 0.015, 0.01, 1.0]);
+		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
+		// gl_set_clear_color(&[0.02, 0.015, 0.01, 1.0]);
 
 		gl_set_depth_write(true);
 		gl_clear(true, true, true);
@@ -389,7 +386,7 @@ impl Renderer {
 
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
-		// self.render_bounds(camera);
+		self.render_bounds(camera);
 		self.timer.end_frame();
 	}
 
