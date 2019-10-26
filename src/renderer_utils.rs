@@ -350,3 +350,51 @@ impl IndirectCommand {
 		}
 	}
 }
+
+pub struct IndicesBuffer {
+	buffer_id: u32,
+	texture_id: u32,
+}
+
+impl IndicesBuffer {
+	pub fn new() -> IndicesBuffer {
+		let mut elements_buffer = 0;
+		unsafe {
+			gl::GenBuffers(1, &mut elements_buffer);
+			gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, elements_buffer);
+			gl::BufferStorage(
+				gl::ELEMENT_ARRAY_BUFFER,
+				2048 * size_of::<u32>() as isize,
+				(&[666u32; 2048]).as_ptr() as *const GLvoid,
+				gl::MAP_READ_BIT,
+			);
+		}
+
+		let mut texture = 0;
+		unsafe {
+			gl::GenTextures(1, &mut texture);
+			gl::BindTexture(gl::TEXTURE_BUFFER, texture);
+
+			gl::TexBuffer(gl::TEXTURE_BUFFER, gl::R32UI as u32, elements_buffer);
+		}
+
+		IndicesBuffer {
+			buffer_id: elements_buffer,
+			texture_id: texture,
+		}
+	}
+
+	pub fn bind_image_texture(&self, unit: u32) {
+		unsafe {
+			gl::BindImageTexture(
+				unit,
+				self.texture_id,
+				0,
+				gl::FALSE,
+				0,
+				gl::WRITE_ONLY,
+				gl::R32UI,
+			);
+		}
+	}
+}

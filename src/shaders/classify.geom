@@ -246,6 +246,5 @@ void main() {
 		voxelizeTriPostSwizzle(v0, v1, v2, n, swizzle, minVoxIndex, maxVoxIndex);
 	}
 
-	// imageStore(largeIndirectElement, 0, uvec4(3 * atomicCounter(u_large_tri_count)));
-	imageStore(largeIndirectElement, 0, uvec4(666));
+	imageStore(largeIndirectElement, 0, uvec4(3 * atomicCounter(u_large_tri_count)));
 }

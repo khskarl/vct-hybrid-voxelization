@@ -52,6 +52,7 @@ pub struct Renderer {
 	inject_program: GLProgram,
 	triangle_counter: AtomicCounter,
 	indirect_command: IndirectCommand,
+	indices_buffer: IndicesBuffer,
 	timer: GlTimer,
 }
 
@@ -100,6 +101,7 @@ impl Renderer {
 			inject_program: load_radiance_injection_program(),
 			triangle_counter: AtomicCounter::new(),
 			indirect_command: IndirectCommand::new(),
+			indices_buffer: IndicesBuffer::new(),
 			timer: GlTimer::new(10, 1200),
 		}
 	}
@@ -268,42 +270,8 @@ impl Renderer {
 		self.volume_scene.bind_image_emission(2);
 
 		// Indirect and indexing stuff
-		let draw_command_data = [
-			0, // count: Num elements (vertices)
-			1, // primCount: Number of instances to draw (a.k.a primcount)
-			0, // firstIndex: Specifies a byte offset (cast to a pointer type) into the buffer bound to GL_ELEMENT_ARRAY_BUFFER to start reading indices from.
-			0, // baseVertex: Specifies a constant that should be added to each element of indices​ when chosing elements from the enabled vertex arrays.
-			0, // baseInstance: Specifies the base instance for use in fetching instanced vertex attributes.
-		];
 		self.triangle_counter.bind_unit(0);
-
-		let mut indices_buffer = 0;
-		let mut indices_texture = 0;
-		unsafe {
-			// Indices buffer setup
-			gl::GenBuffers(1, &mut indices_buffer);
-			gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, indices_buffer);
-			gl::BufferStorage(
-				gl::ELEMENT_ARRAY_BUFFER,
-				2048 * mem::size_of::<u32>() as isize,
-				(&[666u32; 2048]).as_ptr() as *const GLvoid,
-				gl::MAP_READ_BIT,
-			);
-
-			gl::GenTextures(1, &mut indices_texture);
-			gl::BindTexture(gl::TEXTURE_BUFFER, indices_texture);
-			gl::TexBuffer(gl::TEXTURE_BUFFER, gl::R32UI as u32, indices_buffer);
-
-			gl::BindImageTexture(
-				3,
-				indices_texture,
-				0,
-				gl::FALSE,
-				0,
-				gl::WRITE_ONLY,
-				gl::R32UI,
-			);
-		}
+		self.indices_buffer.bind_image_texture(3);
 		self.indirect_command.bind_image_texture(4);
 
 		for primitive in &self.primitives {
