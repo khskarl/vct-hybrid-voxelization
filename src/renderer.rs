@@ -253,7 +253,6 @@ impl Renderer {
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
-			gl::Enable(gl::RASTERIZER_DISCARD);
 		};
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
@@ -319,6 +318,11 @@ impl Renderer {
 				let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 
 				self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
+
+				self.volume_scene.bind_image_albedo(0);
+				self.volume_scene.bind_image_normal(1);
+				self.volume_scene.bind_image_emission(2);
+
 				self
 					.voxelize_program
 					.get_uniform("model")
