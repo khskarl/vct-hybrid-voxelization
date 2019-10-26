@@ -279,3 +279,74 @@ impl AtomicCounter {
 		}
 	}
 }
+
+use gl::types::*;
+use std::mem::size_of;
+
+#[repr(C)]
+struct Command {
+	count: u32,
+	prim_count: u32,
+	first_index: u32,
+	base_vertex: u32,
+	base_instance: u32,
+}
+
+pub struct IndirectCommand {
+	buffer_id: u32,
+	texture_id: u32,
+}
+
+impl IndirectCommand {
+	pub fn new() -> IndirectCommand {
+		let command = Command {
+			count: 1,
+			prim_count: 1,
+			first_index: 0,
+			base_vertex: 0,
+			base_instance: 0,
+		};
+
+		let mut indirect_buffer = 0;
+		unsafe {
+			gl::GenBuffers(1, &mut indirect_buffer);
+			gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, indirect_buffer);
+
+			let command_data = std::slice::from_raw_parts(&command as *const _, 1);
+
+			gl::BufferStorage(
+				gl::DRAW_INDIRECT_BUFFER,
+				size_of::<Command>() as isize,
+				command_data.as_ptr() as *const GLvoid,
+				gl::MAP_READ_BIT,
+			);
+		}
+
+		let mut texture = 0;
+		unsafe {
+			gl::GenTextures(1, &mut texture);
+			gl::BindTexture(gl::TEXTURE_BUFFER, texture);
+
+			gl::TexBuffer(gl::TEXTURE_BUFFER, gl::R32UI as u32, indirect_buffer);
+		}
+
+		IndirectCommand {
+			buffer_id: indirect_buffer,
+			texture_id: texture,
+		}
+	}
+
+	pub fn bind_image_texture(&self, unit: u32) {
+		unsafe {
+			gl::BindImageTexture(
+				unit,
+				self.texture_id,
+				0,
+				gl::FALSE,
+				0,
+				gl::WRITE_ONLY,
+				gl::R32UI,
+			);
+		}
+	}
+}

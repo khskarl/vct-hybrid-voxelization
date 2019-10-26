@@ -268,6 +268,8 @@ pub fn allocate_texture_3d(resolution: usize, mipmap: usize) -> u32 {
 				mem::transmute(raw_pixels[..].as_ptr()),
 			);
 		}
+
+		BindTexture(TEXTURE_3D, 0);
 	}
 
 	handle
