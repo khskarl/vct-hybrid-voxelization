@@ -300,7 +300,7 @@ pub struct IndirectCommand {
 impl IndirectCommand {
 	pub fn new() -> IndirectCommand {
 		let command = Command {
-			count: 1,
+			count: 0,
 			prim_count: 1,
 			first_index: 0,
 			base_vertex: 0,
@@ -314,11 +314,11 @@ impl IndirectCommand {
 
 			let command_data = std::slice::from_raw_parts(&command as *const _, 1);
 
-			gl::BufferStorage(
+			gl::BufferData(
 				gl::DRAW_INDIRECT_BUFFER,
 				size_of::<Command>() as isize,
 				command_data.as_ptr() as *const GLvoid,
-				gl::MAP_READ_BIT,
+				gl::DYNAMIC_DRAW,
 			);
 		}
 
@@ -328,6 +328,11 @@ impl IndirectCommand {
 			gl::BindTexture(gl::TEXTURE_BUFFER, texture);
 
 			gl::TexBuffer(gl::TEXTURE_BUFFER, gl::R32UI as u32, indirect_buffer);
+		}
+
+		unsafe {
+			gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, 0);
+			gl::BindTexture(gl::TEXTURE_BUFFER, 0);
 		}
 
 		IndirectCommand {
@@ -344,13 +349,20 @@ impl IndirectCommand {
 				0,
 				gl::FALSE,
 				0,
-				gl::WRITE_ONLY,
+				gl::READ_WRITE,
 				gl::R32UI,
 			);
 		}
 	}
+
+	pub fn bind(&self) {
+		unsafe {
+			gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, self.buffer_id);
+		}
+	}
 }
 
+// INDICES
 pub struct IndicesBuffer {
 	buffer_id: u32,
 	texture_id: u32,
@@ -362,11 +374,17 @@ impl IndicesBuffer {
 		unsafe {
 			gl::GenBuffers(1, &mut elements_buffer);
 			gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, elements_buffer);
-			gl::BufferStorage(
+			// gl::BufferStorage(
+			// 	gl::ELEMENT_ARRAY_BUFFER,
+			// 	2048 * size_of::<u32>() as isize,
+			// 	(&[666u32; 2048]).as_ptr() as *const GLvoid,
+			// 	gl::MAP_READ_BIT,
+			// );
+			gl::BufferData(
 				gl::ELEMENT_ARRAY_BUFFER,
 				2048 * size_of::<u32>() as isize,
 				(&[666u32; 2048]).as_ptr() as *const GLvoid,
-				gl::MAP_READ_BIT,
+				gl::DYNAMIC_DRAW,
 			);
 		}
 
@@ -376,6 +394,11 @@ impl IndicesBuffer {
 			gl::BindTexture(gl::TEXTURE_BUFFER, texture);
 
 			gl::TexBuffer(gl::TEXTURE_BUFFER, gl::R32UI as u32, elements_buffer);
+		}
+
+		unsafe {
+			gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+			gl::BindTexture(gl::TEXTURE_BUFFER, 0);
 		}
 
 		IndicesBuffer {
@@ -395,6 +418,12 @@ impl IndicesBuffer {
 				gl::WRITE_ONLY,
 				gl::R32UI,
 			);
+		}
+	}
+
+	pub fn bind(&self) {
+		unsafe {
+			gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.buffer_id);
 		}
 	}
 }

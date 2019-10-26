@@ -7,7 +7,7 @@ use std::rc::Rc;
 pub struct GpuPrimitive {
 	vertex_array: GLVertexArray,
 	_vertex_buffer: GLBuffer,
-	_index_buffer: Option<GLBuffer>,
+	index_buffer: Option<GLBuffer>,
 	count_vertices: usize,
 	material: Option<Rc<GpuMaterial>>,
 	position: glm::Vec3,
@@ -35,7 +35,7 @@ impl GpuPrimitive {
 		GpuPrimitive {
 			vertex_array,
 			_vertex_buffer: vertex_buffer,
-			_index_buffer: None,
+			index_buffer: None,
 			count_vertices: (width * height * depth) as usize,
 			material: None,
 			position: glm::vec3(0.0, 0.0, 0.0),
@@ -113,7 +113,7 @@ impl GpuPrimitive {
 		GpuPrimitive {
 			vertex_array,
 			_vertex_buffer: vertex_buffer,
-			_index_buffer: Some(index_buffer),
+			index_buffer: Some(index_buffer),
 			count_vertices: primitive.indices.len(),
 			material: Some(material),
 			position,
@@ -123,6 +123,11 @@ impl GpuPrimitive {
 
 	pub fn bind(&self) {
 		self.vertex_array.bind();
+		unsafe {
+			if let Some(ibo) = &self.index_buffer {
+				gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo.id());
+			}
+		}
 	}
 
 	pub const fn count_vertices(&self) -> usize {

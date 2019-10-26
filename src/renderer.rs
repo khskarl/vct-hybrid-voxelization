@@ -256,14 +256,7 @@ impl Renderer {
 			gl::Enable(gl::RASTERIZER_DISCARD);
 		};
 
-		self.classify_program.bind();
-		self
-			.classify_program
-			.get_uniform("u_resolution")
-			.set_3i(1, &[width, height, depth]);
-
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
-		self.classify_program.get_uniform("pv").set_mat4f(&pv);
 
 		self.volume_scene.bind_image_albedo(0);
 		self.volume_scene.bind_image_normal(1);
@@ -275,6 +268,14 @@ impl Renderer {
 		self.indirect_command.bind_image_texture(4);
 
 		for primitive in &self.primitives {
+			self.classify_program.bind();
+			self.classify_program.get_uniform("pv").set_mat4f(&pv);
+
+			self
+				.classify_program
+				.get_uniform("u_resolution")
+				.set_3i(1, &[width, height, depth]);
+
 			self.triangle_counter.set_value(0);
 
 			primitive.bind();
@@ -296,18 +297,45 @@ impl Renderer {
 				IndexKind::UnsignedInt,
 				0,
 			);
+			println!("count_vertices: {}", primitive.count_vertices());
 
 			unsafe {
+				use std::mem;
+				use std::ptr;
 				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 
-				// gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, indices_buffer);
-				// gl::BindBuffer(gl::DRAW_INDIRECT_BUFFER, indirect_buffer);
+				let width = self.volume_scene.resolution() as i32;
+				let height = self.volume_scene.resolution() as i32;
+				let depth = self.volume_scene.resolution() as i32;
+				primitive.bind();
+				self.indirect_command.bind();
+				self.indices_buffer.bind();
 
-				// gl::DrawElementsIndirect(
-				// 	gl::TRIANGLES,
-				// 	gl::UNSIGNED_INT,
-				// 	(&[0]).as_ptr() as *const GLvoid,
-				// );
+				self.voxelize_program.bind();
+				self.voxelize_program.get_uniform("u_width").set_1i(width);
+				// self.voxelize_program.get_uniform("u_height").set_1i(height);
+				self.voxelize_program.get_uniform("u_depth").set_1i(depth);
+
+				let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
+
+				self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
+				self
+					.voxelize_program
+					.get_uniform("model")
+					.set_mat4f(&primitive.model_matrix_raw());
+
+				let mat = &primitive.material();
+				self
+					.voxelize_program
+					.get_uniform("albedo_map")
+					.set_sampler_2d(&mat.albedo(), 0);
+
+				// gl::DrawElementsIndirect(gl::TRIANGLES, gl::UNSIGNED_INT, ptr::null());
+				gl::DrawElementsIndirect(
+					gl::TRIANGLES,
+					gl::UNSIGNED_INT,
+					0 as usize as *const std::ffi::c_void,
+				);
 			}
 			// let tri_count = self.tri_count_buffer.read_data_u32();
 			// println!("After: {}", tri_count);
