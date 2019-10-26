@@ -227,7 +227,7 @@ void main() {
 	swizzleTri(v0, v1, v2, n, swizzle);
 
 	// int classification = classifyTriPostSwizzle(v0, v1, v2, 0.2);
-	int classification = classifyTriPostSwizzle(v0, v1, v2, 0.2);
+	int classification = classifyTriPostSwizzle(v0, v1, v2, 50.5);
 
 	if(classification == LARGE) {
 		int index = int(atomicCounterIncrement(u_large_tri_count));
