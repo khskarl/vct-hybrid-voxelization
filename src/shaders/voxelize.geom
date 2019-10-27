@@ -10,6 +10,7 @@ in VSOUT {
 
 layout(location = 0) uniform ivec3 u_resolution;
 layout(location = 1) uniform mat4 pv;
+layout(location = 2) uniform bool u_expand_triangle;
 
 out vec3 gw_position;
 out vec3 gw_normal;
@@ -46,13 +47,14 @@ void main() {
 
 	// Calculate clipping region
 	float pixel_diagonal = 1.4142135637309 / float(u_resolution.x);
-	vec4 AABB;
-	AABB.xy = min(s_position[0].xy, min(s_position[1].xy, s_position[2].xy));
-	AABB.zw = max(s_position[0].xy, max(s_position[1].xy, s_position[2].xy));
-	AABB.xy -= vec2(pixel_diagonal);
-	AABB.zw += vec2(pixel_diagonal);
-
-	s_position = enlarge_triangle(s_position, u_resolution);
+	vec4 AABB = vec4(0.0);
+	if (u_expand_triangle == true) {
+		AABB.xy = min(s_position[0].xy, min(s_position[1].xy, s_position[2].xy));
+		AABB.zw = max(s_position[0].xy, max(s_position[1].xy, s_position[2].xy));
+		AABB.xy -= vec2(pixel_diagonal);
+		AABB.zw += vec2(pixel_diagonal);
+		s_position = enlarge_triangle(s_position, u_resolution);
+	}
 
 	for(int i = 0; i < 3; i++) {
 		gl_Position = s_position[i];

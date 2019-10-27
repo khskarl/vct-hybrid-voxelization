@@ -59,6 +59,8 @@ pub struct Renderer {
 }
 
 impl Renderer {
+	const GL_NV_CONSERVATIVE_RASTERIZATION: u32 = 0x9346;
+
 	pub fn new(
 		window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>,
 		logical_size: glutin::dpi::LogicalSize,
@@ -255,6 +257,11 @@ impl Renderer {
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
+			gl::Enable(gl::RASTERIZER_DISCARD);
+
+			if self.nv_conservative {
+				gl::Enable(Self::GL_NV_CONSERVATIVE_RASTERIZATION);
+			}
 		};
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
@@ -264,11 +271,13 @@ impl Renderer {
 		unsafe {
 			gl::Uniform3iv(0, 1, resolution as *const _);
 			gl::UniformMatrix4fv(1, 1, gl::FALSE, (&pv) as *const _);
+			gl::Uniform1i(2, !self.nv_conservative as i32);
 		}
 		self.voxelize_program.bind();
 		unsafe {
 			gl::Uniform3iv(0, 1, resolution as *const _);
 			gl::UniformMatrix4fv(1, 1, gl::FALSE, (&pv) as *const _);
+			gl::Uniform1i(2, !self.nv_conservative as i32);
 		}
 
 		// Image bindings
@@ -304,6 +313,8 @@ impl Renderer {
 
 			unsafe {
 				use std::ptr;
+				gl::Disable(gl::RASTERIZER_DISCARD);
+
 				gl::MemoryBarrier(gl::ATOMIC_COUNTER_BARRIER_BIT);
 
 				self.indirect_command.bind();
@@ -323,7 +334,9 @@ impl Renderer {
 
 		unsafe {
 			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
-			gl::Disable(gl::RASTERIZER_DISCARD);
+			if self.nv_conservative {
+				gl::Disable(Self::GL_NV_CONSERVATIVE_RASTERIZATION);
+			}
 		}
 
 		self.timer.end("voxelize_hybrid_triangle");
@@ -341,9 +354,15 @@ impl Renderer {
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			if self.nv_conservative {
+				gl::Enable(Self::GL_NV_CONSERVATIVE_RASTERIZATION);
+			}
 		};
 
 		self.voxelize_program.bind();
+		unsafe {
+			gl::Uniform1i(2, !self.nv_conservative as i32);
+		}
 		self
 			.voxelize_program
 			.get_uniform("u_resolution")
@@ -382,6 +401,9 @@ impl Renderer {
 		unsafe {
 			gl::ColorMask(gl::TRUE, gl::TRUE, gl::TRUE, gl::TRUE);
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			if self.nv_conservative {
+				gl::Disable(Self::GL_NV_CONSERVATIVE_RASTERIZATION);
+			}
 			// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 		}
 	}

@@ -15,10 +15,13 @@ layout(binding = 2, r32ui) uniform volatile coherent restrict uimage3D u_voxel_e
 layout(binding = 0) uniform sampler2D albedo_map;
 
 layout(location = 0) uniform ivec3 u_resolution;
+layout(location = 2) uniform bool u_expand_triangle;
 
 void main() {
-	if(is_outside_aabb(g_AABB, gl_FragCoord.xy, u_resolution.x)) {
-		discard;
+	if(u_expand_triangle == true) {
+		if(is_outside_aabb(g_AABB, gl_FragCoord.xy, u_resolution.x)) {
+			discard;
+		}
 	}
 
 	mat3 swizzle_matrix_inverse = inverse(swizzleLUT[g_swizzle]);
