@@ -11,9 +11,9 @@ out VSOUT {
 	int  id;
 } v_out;
 
-uniform ivec3 u_resolution;
+layout(location = 0) uniform ivec3 u_resolution;
+layout(location = 1) uniform mat4 pv;
 
-uniform mat4 pv;
 uniform mat4 model;
 
 vec3 to_voxel_space(vec3 pos) {

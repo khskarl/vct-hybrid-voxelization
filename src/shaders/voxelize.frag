@@ -2,8 +2,6 @@
 
 #include <shared.glsl>
 
-uniform ivec3 u_resolution;
-
 in vec3 gw_position;
 in vec3 gw_normal;
 in vec2 g_uv;
@@ -15,6 +13,8 @@ layout(binding = 1, r32ui) uniform volatile coherent restrict uimage3D u_voxel_n
 layout(binding = 2, r32ui) uniform volatile coherent restrict uimage3D u_voxel_emission;
 
 layout(binding = 0) uniform sampler2D albedo_map;
+
+layout(location = 0) uniform ivec3 u_resolution;
 
 void main() {
 	if(is_outside_aabb(g_AABB, gl_FragCoord.xy, u_resolution.x)) {

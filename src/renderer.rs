@@ -255,6 +255,19 @@ impl Renderer {
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 
+		// Shared uniforms
+		self.classify_program.bind();
+		unsafe {
+			gl::Uniform3iv(0, 1, resolution as *const _);
+			gl::UniformMatrix4fv(1, 1, gl::FALSE, (&pv) as *const _);
+		}
+		self.voxelize_program.bind();
+		unsafe {
+			gl::Uniform3iv(0, 1, resolution as *const _);
+			gl::UniformMatrix4fv(1, 1, gl::FALSE, (&pv) as *const _);
+		}
+
+		// Image bindings
 		self.volume_scene.bind_image_albedo(0);
 		self.volume_scene.bind_image_normal(1);
 		self.volume_scene.bind_image_emission(2);
@@ -263,24 +276,14 @@ impl Renderer {
 		self.triangle_counter.bind_unit(0);
 		self.indices_buffer.bind_image_texture(3);
 		self.indirect_command.bind_image_texture(4);
-
 		for primitive in &self.primitives {
-			self.classify_program.bind();
-			self.classify_program.get_uniform("pv").set_mat4f(&pv);
-
-			self
-				.classify_program
-				.get_uniform("u_resolution")
-				.set_3i(1, resolution);
-
-			self.triangle_counter.set_value(0);
-
 			primitive.bind();
 
-			self
-				.classify_program
-				.get_uniform("model")
-				.set_mat4f(&primitive.model_matrix_raw());
+			self.classify_program.bind();
+			self.triangle_counter.set_value(0);
+
+			let model = &primitive.model_matrix_raw();
+			self.classify_program.get_uniform("model").set_mat4f(model);
 
 			let mat = &primitive.material();
 			self
@@ -296,48 +299,22 @@ impl Renderer {
 			);
 
 			unsafe {
-				// TODO: ALL_BARRIER_BITS is overkill
-				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
+				use std::ptr;
+				gl::MemoryBarrier(gl::ATOMIC_COUNTER_BARRIER_BIT);
 
-				let resolution = &self.volume_scene.resolution();
-				primitive.bind();
 				self.indirect_command.bind();
 				self.indices_buffer.bind();
 
 				self.voxelize_program.bind();
-				self
-					.voxelize_program
-					.get_uniform("u_resolution")
-					.set_3i(1, resolution);
+				self.voxelize_program.get_uniform("model").set_mat4f(model);
 
-				let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
-
-				self.voxelize_program.get_uniform("pv").set_mat4f(&pv);
-
-				self.volume_scene.bind_image_albedo(0);
-				self.volume_scene.bind_image_normal(1);
-				self.volume_scene.bind_image_emission(2);
-
-				self
-					.voxelize_program
-					.get_uniform("model")
-					.set_mat4f(&primitive.model_matrix_raw());
-
-				let mat = &primitive.material();
 				self
 					.voxelize_program
 					.get_uniform("albedo_map")
 					.set_sampler_2d(&mat.albedo(), 0);
 
-				// gl::DrawElementsIndirect(gl::TRIANGLES, gl::UNSIGNED_INT, ptr::null());
-				gl::DrawElementsIndirect(
-					gl::TRIANGLES,
-					gl::UNSIGNED_INT,
-					0 as usize as *const std::ffi::c_void,
-				);
+				gl::DrawElementsIndirect(gl::TRIANGLES, gl::UNSIGNED_INT, ptr::null());
 			}
-			// let tri_count = self.tri_count_buffer.read_data_u32();
-			// println!("After: {}", tri_count);
 		}
 
 		unsafe {
@@ -346,8 +323,6 @@ impl Renderer {
 		}
 
 		self.timer.end("voxelize_hybrid_triangle");
-
-		// self.tri_count_buffer.unbind();
 	}
 
 	fn voxelize_fragment(&self) {

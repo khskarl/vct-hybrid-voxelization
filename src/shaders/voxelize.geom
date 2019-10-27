@@ -8,9 +8,8 @@ in VSOUT {
 	vec2 uv;
 } v_in[];
 
-uniform ivec3 u_resolution;
-
-uniform mat4 pv;
+layout(location = 0) uniform ivec3 u_resolution;
+layout(location = 1) uniform mat4 pv;
 
 out vec3 gw_position;
 out vec3 gw_normal;

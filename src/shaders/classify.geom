@@ -12,7 +12,7 @@ in VSOUT {
  	int  id;
 } v_in[];
 
-uniform ivec3 u_resolution;
+layout(location = 0) uniform ivec3 u_resolution;
 
 layout(binding = 0, r32ui) uniform volatile coherent restrict uimage3D u_voxel_albedo;
 layout(binding = 1, r32ui) uniform volatile coherent restrict uimage3D u_voxel_normal;
