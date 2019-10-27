@@ -176,8 +176,12 @@ impl Volume {
 		self.resolution * self.resolution * self.resolution
 	}
 
-	pub fn resolution(&self) -> usize {
-		self.resolution
+	pub fn resolution(&self) -> [i32; 3] {
+		[
+			self.resolution as i32,
+			self.resolution as i32,
+			self.resolution as i32,
+		]
 	}
 
 	pub fn resolution_mut(&mut self) -> &mut usize {

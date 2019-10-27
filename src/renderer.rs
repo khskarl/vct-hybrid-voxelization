@@ -173,11 +173,11 @@ impl Renderer {
 		self.volume_scene.bind_texture_emission(2);
 		self.volume_scene.bind_image_radiance(3);
 
-		let resolution = self.volume_scene.resolution() as i32;
+		let resolution = &self.volume_scene.resolution();
 		self
 			.inject_program
 			.get_uniform("u_resolution")
-			.set_3i(1, &[resolution, resolution, resolution]);
+			.set_3i(1, resolution);
 
 		let position = *self.volume_scene.translation();
 		let scale = *self.volume_scene.scaling();
@@ -193,9 +193,9 @@ impl Renderer {
 
 		unsafe {
 			gl::DispatchCompute(
-				resolution as u32 / 8,
-				resolution as u32 / 8,
-				resolution as u32 / 8,
+				resolution[0] as u32 / 8,
+				resolution[1] as u32 / 8,
+				resolution[2] as u32 / 8,
 			);
 
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -243,13 +243,11 @@ impl Renderer {
 
 		self.timer.begin("voxelize_hybrid_triangle");
 
-		let width = self.volume_scene.resolution() as i32;
-		let height = self.volume_scene.resolution() as i32;
-		let depth = self.volume_scene.resolution() as i32;
+		let resolution = &self.volume_scene.resolution();
 
 		gl_set_depth_write(false);
 		gl_set_cull_face(CullFace::None);
-		gl_set_viewport(0, 0, width as usize, height as usize);
+		gl_set_viewport(0, 0, resolution[0] as usize, resolution[1] as usize);
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
@@ -273,7 +271,7 @@ impl Renderer {
 			self
 				.classify_program
 				.get_uniform("u_resolution")
-				.set_3i(1, &[width, height, depth]);
+				.set_3i(1, resolution);
 
 			self.triangle_counter.set_value(0);
 
@@ -298,21 +296,24 @@ impl Renderer {
 			);
 
 			unsafe {
-				use std::mem;
-				use std::ptr;
+				// TODO: ALL_BARRIER_BITS is overkill
 				gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 
-				let width = self.volume_scene.resolution() as i32;
-				let height = self.volume_scene.resolution() as i32;
-				let depth = self.volume_scene.resolution() as i32;
+				let resolution = &self.volume_scene.resolution();
 				primitive.bind();
 				self.indirect_command.bind();
 				self.indices_buffer.bind();
 
 				self.voxelize_program.bind();
-				self.voxelize_program.get_uniform("u_width").set_1i(width);
+				self
+					.voxelize_program
+					.get_uniform("u_width")
+					.set_1i(resolution[0]);
 				// self.voxelize_program.get_uniform("u_height").set_1i(height);
-				self.voxelize_program.get_uniform("u_depth").set_1i(depth);
+				self
+					.voxelize_program
+					.get_uniform("u_depth")
+					.set_1i(resolution[2]);
 
 				let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 
@@ -357,13 +358,11 @@ impl Renderer {
 	fn voxelize_fragment(&self) {
 		self.clear_volume();
 
-		let width = self.volume_scene.resolution() as i32;
-		let height = self.volume_scene.resolution() as i32;
-		let depth = self.volume_scene.resolution() as i32;
+		let resolution = &self.volume_scene.resolution();
 
 		gl_set_depth_write(false);
 		gl_set_cull_face(CullFace::None);
-		gl_set_viewport(0, 0, width as usize, height as usize);
+		gl_set_viewport(0, 0, resolution[0] as usize, resolution[1] as usize);
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
@@ -371,9 +370,15 @@ impl Renderer {
 		};
 
 		self.voxelize_program.bind();
-		self.voxelize_program.get_uniform("u_width").set_1i(width);
+		self
+			.voxelize_program
+			.get_uniform("u_width")
+			.set_1i(resolution[0]);
 		// self.voxelize_program.get_uniform("u_height").set_1i(height);
-		self.voxelize_program.get_uniform("u_depth").set_1i(depth);
+		self
+			.voxelize_program
+			.get_uniform("u_depth")
+			.set_1i(resolution[2]);
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 
@@ -465,7 +470,7 @@ impl Renderer {
 		self
 			.volume_view_program
 			.get_uniform("resolution")
-			.set_1i(self.volume_scene.resolution() as i32);
+			.set_1i(self.volume_scene.resolution()[0] as i32);
 
 		self.volume_scene.draw();
 	}
@@ -481,7 +486,7 @@ impl Renderer {
 
 		program
 			.get_uniform("u_width")
-			.set_1i(self.volume_scene.resolution() as i32);
+			.set_1i(self.volume_scene.resolution()[0] as i32);
 
 		self.volume_scene.bind_texture_radiance(4);
 
@@ -571,7 +576,7 @@ impl Renderer {
 
 	pub fn save_diagnostics(&self, scene_name: &str) {
 		let resolution = self.volume_scene.resolution();
-		let file_name = format!("{}_{}.csv", resolution, scene_name);
+		let file_name = format!("{}_{}.csv", resolution[0], scene_name);
 
 		self.timer.save_file(&file_name).unwrap();
 	}

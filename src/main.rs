@@ -129,8 +129,8 @@ fn main() {
 	};
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
-	// cornell_scene(&mut renderer, &mut camera);
-	sponza_scene(&mut renderer, &mut camera);
+	cornell_scene(&mut renderer, &mut camera);
+	// sponza_scene(&mut renderer, &mut camera);
 	// test_scene(&mut renderer, &mut camera);
 
 	let mut key_states = KeyStates::new();
