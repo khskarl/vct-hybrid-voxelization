@@ -54,6 +54,8 @@ pub struct Renderer {
 	indirect_command: IndirectCommand,
 	indices_buffer: IndicesBuffer,
 	timer: GlTimer,
+	pub nv_conservative: bool,
+	pub show_bounds: bool,
 }
 
 impl Renderer {
@@ -103,6 +105,8 @@ impl Renderer {
 			indirect_command: IndirectCommand::new(),
 			indices_buffer: IndicesBuffer::new(),
 			timer: GlTimer::new(10, 1200),
+			nv_conservative: true,
+			show_bounds: false,
 		}
 	}
 
@@ -404,8 +408,12 @@ impl Renderer {
 
 		gl_set_cull_face(CullFace::Back);
 		self.render_scene(camera);
-		self.render_bounds(camera);
+
 		self.timer.end_frame();
+
+		if self.show_bounds {
+			self.render_bounds(camera);
+		}
 	}
 
 	pub fn render_voxels(&self, camera: &Camera) {

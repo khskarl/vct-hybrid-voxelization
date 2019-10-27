@@ -271,6 +271,7 @@ fn main() {
 								&mut renderer.rendering_mode,
 								RenderingMode::Scene,
 							);
+
 							ui.separator();
 							ui.radio_button(
 								im_str!("Fragment"),
@@ -283,6 +284,12 @@ fn main() {
 								&mut renderer.voxelization_mode,
 								VoxelizationMode::Hybrid,
 							);
+							ui.separator();
+							ui.checkbox(
+								im_str!("GL_NV_conversative_raster"),
+								&mut renderer.nv_conservative,
+							);
+							ui.checkbox(im_str!("Show bounds"), &mut renderer.show_bounds);
 						});
 
 						Window::new(im_str!("Transforms")).build(&ui, || {
