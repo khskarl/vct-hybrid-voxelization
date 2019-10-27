@@ -21,7 +21,9 @@ struct ImGuiState {
 	resolution_index: usize,
 }
 
-fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
+fn test_scene(renderer: &mut Renderer, camera: &mut Camera, scene_name: &mut &'static str) {
+	*scene_name = "test";
+
 	use glm::vec3;
 
 	let mut resources = Resources::new();
@@ -43,7 +45,9 @@ fn test_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	camera.pitch = 0.0;
 }
 
-fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera) {
+fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera, scene_name: &mut &'static str) {
+	*scene_name = "sponza";
+
 	use glm::vec3;
 
 	let mut resources = Resources::new();
@@ -65,7 +69,9 @@ fn sponza_scene(renderer: &mut Renderer, camera: &mut Camera) {
 	camera.pitch = 0.0;
 }
 
-fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera) {
+fn cornell_scene(renderer: &mut Renderer, camera: &mut Camera, scene_name: &mut &'static str) {
+	*scene_name = "cornell";
+
 	use glm::vec3;
 
 	let mut resources = Resources::new();
@@ -117,9 +123,15 @@ fn main() {
 
 	let resolutions = [64, 128, 256];
 	let res_index = 0;
+	let conservative = true;
 
 	// Renderer setup
-	let mut renderer = renderer::Renderer::new(&window_gl, logical_size, resolutions[res_index]);
+	let mut renderer = renderer::Renderer::new(
+		&window_gl,
+		logical_size,
+		resolutions[res_index],
+		conservative,
+	);
 
 	let imgui_renderer =
 		imgui_opengl_renderer::Renderer::new(&mut imgui, |s| window_gl.get_proc_address(s) as _);
@@ -129,14 +141,19 @@ fn main() {
 	};
 
 	let mut camera = Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0);
-	cornell_scene(&mut renderer, &mut camera);
-	// sponza_scene(&mut renderer, &mut camera);
-	// test_scene(&mut renderer, &mut camera);
+	let mut scene_name = "INVALID";
+	// cornell_scene(&mut renderer, &mut camera, &mut scene_name);
+	sponza_scene(&mut renderer, &mut camera, &mut scene_name);
+	// test_scene(&mut renderer, &mut camera, &mut scene_name);
 
 	let mut key_states = KeyStates::new();
 
+	const MAX_DELTAS: usize = 60;
 	let target_dt = 0.016_666_668;
-	let mut dt = target_dt;
+	let mut curr_frame: usize = 0;
+	let mut delta_times = [target_dt; MAX_DELTAS];
+	let mut dt: f32 = delta_times.iter().sum();
+	dt /= MAX_DELTAS as f32;
 	let initial_time = Instant::now();
 	let mut start_frame_time = Instant::now();
 
@@ -181,7 +198,7 @@ fn main() {
 						(K, _) => key_states.K = state,
 						(I, _) => key_states.I = state,
 
-						(P, Released) => renderer.save_diagnostics("debug"),
+						(P, Released) => renderer.save_diagnostics(scene_name),
 
 						_ => (),
 					}
@@ -197,8 +214,8 @@ fn main() {
 						Window::new(im_str!("Diagnostics"))
 							.size([300.0, 100.0], Condition::FirstUseEver)
 							.build(&ui, || {
-								ui.text(format!("Frame rate: {} frames/s", 1.0 / dt));
-								ui.text(format!("Frame time: {} ms", dt * 1000.0));
+								ui.text(format!("Frame rate: {:.2} frames/s", 1.0 / dt));
+								ui.text(format!("Frame time: {:.2} ms", dt * 1000.0));
 								ui.separator();
 
 								let mouse_pos = ui.io().mouse_pos;
@@ -285,6 +302,15 @@ fn main() {
 								VoxelizationMode::Hybrid,
 							);
 							ui.separator();
+
+							Slider::new(im_str!("Cutoff"), 0.1..=10.0)
+								.display_format(im_str!("%.1f"))
+								.build(&ui, &mut renderer.cutoff);
+
+							ui.drag_float(&im_str!("Cutoff"), &mut renderer.cutoff)
+								.min(0.1)
+								.max(18000.0)
+								.build();
 							ui.checkbox(
 								im_str!("GL_NV_conversative_raster"),
 								&mut renderer.nv_conservative,
@@ -293,9 +319,7 @@ fn main() {
 						});
 
 						Window::new(im_str!("Transforms")).build(&ui, || {
-							let primitives = renderer.primitives_mut();
-							let mut i = 0;
-							for primitive in primitives {
+							for (i, primitive) in renderer.primitives_mut().iter_mut().enumerate() {
 								ui.drag_float3(
 									&im_str!("Translation##{}", i),
 									primitive.translation_mut().as_mut(),
@@ -307,8 +331,6 @@ fn main() {
 									.min(-100.0)
 									.max(100.0)
 									.build();
-
-								i += 1;
 							}
 						});
 					}
@@ -321,7 +343,7 @@ fn main() {
 				_ => (),
 			},
 			Event::EventsCleared => {
-				update_camera(&mut camera, dt, &key_states);
+				update_camera(&mut camera, dt as f32, &key_states);
 				let primitives = renderer.primitives_mut();
 
 				primitives[0].translation_mut().as_mut()[0] =
@@ -330,10 +352,13 @@ fn main() {
 				primitives[0].translation_mut().as_mut()[2] =
 					initial_time.elapsed().as_secs_f32().sin() * 3.5;
 
-				dt = Instant::now()
+				delta_times[curr_frame] = Instant::now()
 					.duration_since(start_frame_time)
 					.as_secs_f32();
-				imgui.io_mut().delta_time = dt;
+				dt = delta_times.iter().sum();
+				dt /= MAX_DELTAS as f32;
+				curr_frame = (curr_frame + 1) % MAX_DELTAS;
+				imgui.io_mut().delta_time = dt as f32;
 
 				window_gl
 					.window()

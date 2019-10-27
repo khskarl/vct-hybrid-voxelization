@@ -56,6 +56,7 @@ pub struct Renderer {
 	timer: GlTimer,
 	pub nv_conservative: bool,
 	pub show_bounds: bool,
+	pub cutoff: f32,
 }
 
 impl Renderer {
@@ -65,6 +66,7 @@ impl Renderer {
 		window_gl: &glutin::WindowedContext<glutin::PossiblyCurrent>,
 		logical_size: glutin::dpi::LogicalSize,
 		resolution: usize,
+		conservative: bool,
 	) -> Renderer {
 		gl::load_with(|symbol| window_gl.get_proc_address(symbol) as *const _);
 		gl_set_defaults();
@@ -86,7 +88,7 @@ impl Renderer {
 
 		Renderer {
 			viewport_size: (logical_size.width as usize, logical_size.height as usize),
-			rendering_mode: RenderingMode::Albedo,
+			rendering_mode: RenderingMode::Scene,
 			voxelization_mode: VoxelizationMode::Hybrid,
 			primitives: Vec::new(),
 			materials: HashMap::new(),
@@ -107,8 +109,9 @@ impl Renderer {
 			indirect_command: IndirectCommand::new(),
 			indices_buffer: IndicesBuffer::new(),
 			timer: GlTimer::new(10, 1200),
-			nv_conservative: true,
+			nv_conservative: conservative,
 			show_bounds: false,
+			cutoff: 1.0,
 		}
 	}
 
@@ -156,7 +159,9 @@ impl Renderer {
 		self.volume_scene.draw();
 	}
 
-	fn inject_light(&self) {
+	fn inject_light(&mut self) {
+		self.timer.begin("inject_light");
+
 		self.inject_program.bind();
 
 		let (positions, colors) = lights_to_soa(&self.lights);
@@ -206,6 +211,8 @@ impl Renderer {
 
 			gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
+
+		self.timer.end("inject_light");
 	}
 
 	fn render_bounds(&self, camera: &Camera) {
@@ -245,8 +252,6 @@ impl Renderer {
 	}
 
 	fn voxelize_hybrid(&mut self) {
-		self.clear_volume();
-
 		self.timer.begin("voxelize_hybrid_triangle");
 
 		let resolution = &self.volume_scene.resolution();
@@ -257,7 +262,6 @@ impl Renderer {
 		gl_clear(true, true, false);
 		unsafe {
 			gl::ColorMask(gl::FALSE, gl::FALSE, gl::FALSE, gl::FALSE);
-			gl::Enable(gl::RASTERIZER_DISCARD);
 
 			if self.nv_conservative {
 				gl::Enable(Self::GL_NV_CONSERVATIVE_RASTERIZATION);
@@ -272,6 +276,7 @@ impl Renderer {
 			gl::Uniform3iv(0, 1, resolution as *const _);
 			gl::UniformMatrix4fv(1, 1, gl::FALSE, (&pv) as *const _);
 			gl::Uniform1i(2, !self.nv_conservative as i32);
+			gl::Uniform1f(3, self.cutoff);
 		}
 		self.voxelize_program.bind();
 		unsafe {
@@ -310,12 +315,14 @@ impl Renderer {
 				IndexKind::UnsignedInt,
 				0,
 			);
+			self.timer.end("voxelize_hybrid_triangle");
 
+			self.timer.begin("voxelize_hybrid_fragment");
 			unsafe {
 				use std::ptr;
-				gl::Disable(gl::RASTERIZER_DISCARD);
 
-				gl::MemoryBarrier(gl::ATOMIC_COUNTER_BARRIER_BIT);
+				// gl::MemoryBarrier(gl::ATOMIC_COUNTER_BARRIER_BIT);
+				// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 
 				self.indirect_command.bind();
 				self.indices_buffer.bind();
@@ -339,11 +346,11 @@ impl Renderer {
 			}
 		}
 
-		self.timer.end("voxelize_hybrid_triangle");
+		self.timer.end("voxelize_hybrid_fragment");
 	}
 
-	fn voxelize_fragment(&self) {
-		self.clear_volume();
+	fn voxelize_fragment(&mut self) {
+		self.timer.begin("voxelize_fragment");
 
 		let resolution = &self.volume_scene.resolution();
 
@@ -406,20 +413,24 @@ impl Renderer {
 			}
 			// gl::MemoryBarrier(gl::ALL_BARRIER_BITS);
 		}
+		self.timer.end("voxelize_fragment");
 	}
 
 	pub fn render(&mut self, camera: &Camera) {
 		self.timer.begin_frame();
 		// self.render_to_shadow_map();
 
+		self.clear_volume();
 		self.voxelize();
 		self.inject_light();
 
+		self.timer.begin("generate_mipmap");
 		self.volume_scene.generate_mipmap();
+		self.timer.end("generate_mipmap");
 
 		gl_set_viewport(0, 0, self.viewport_size.0, self.viewport_size.1);
-		gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
-		// gl_set_clear_color(&[0.02, 0.015, 0.01, 1.0]);
+		// gl_set_clear_color(&[0.8, 0.75, 0.79, 1.0]);
+		gl_set_clear_color(&[0.02, 0.015, 0.01, 1.0]);
 
 		gl_set_depth_write(true);
 		gl_clear(true, true, true);
@@ -571,7 +582,14 @@ impl Renderer {
 
 	pub fn save_diagnostics(&self, scene_name: &str) {
 		let resolution = self.volume_scene.resolution();
-		let file_name = format!("{}_{}.csv", resolution[0], scene_name);
+		let file_name = if self.nv_conservative {
+			format!(
+				"{}_{}_conservative_{:.2}.csv",
+				resolution[0], scene_name, self.cutoff
+			)
+		} else {
+			format!("{}_{}_{:.2}.csv", resolution[0], scene_name, self.cutoff)
+		};
 
 		self.timer.save_file(&file_name).unwrap();
 	}

@@ -380,10 +380,11 @@ impl IndicesBuffer {
 			// 	(&[666u32; 2048]).as_ptr() as *const GLvoid,
 			// 	gl::MAP_READ_BIT,
 			// );
+			const LENGTH: usize = 2048 * 4;
 			gl::BufferData(
 				gl::ELEMENT_ARRAY_BUFFER,
-				2048 * size_of::<u32>() as isize,
-				(&[666u32; 2048]).as_ptr() as *const GLvoid,
+				(LENGTH * size_of::<u32>()) as isize,
+				(&[666u32; LENGTH]).as_ptr() as *const GLvoid,
 				gl::DYNAMIC_DRAW,
 			);
 		}

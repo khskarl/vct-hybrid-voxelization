@@ -31,6 +31,7 @@ void main() {
 	ivec3 position = ivec3(swizzle_matrix_inverse * pos);
 
 	vec3 albedo = texture(albedo_map, g_uv).rgb;
+	// vec3 albedo = texture(albedo_map, g_uv).rgb * 0.00001 + vec3(1.0, 0.0, 0.0);
 	vec3 normal = encode_normal(gw_normal);
 	vec3 emission = vec3(0.0);
 

@@ -13,6 +13,7 @@ in VSOUT {
 } v_in[];
 
 layout(location = 0) uniform ivec3 u_resolution;
+layout(location = 3) uniform float u_cutoff;
 
 layout(binding = 0, r32ui) uniform volatile coherent restrict uimage3D u_voxel_albedo;
 layout(binding = 1, r32ui) uniform volatile coherent restrict uimage3D u_voxel_normal;
@@ -34,7 +35,7 @@ float triArea2D(vec2 v0, vec2 v1, vec2 v2) {
 //classify triangle as either LARGE or SMALL acorrding to the selected method
 int classifyTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, float cutoff) {
 	float val = triArea2D(v0.xy, v1.xy, v2.xy);
-	return (val >= cutoff) ? LARGE : SMALL;
+	return (val > cutoff) ? LARGE : SMALL;
 }
 
 //Lookup up table of permutations matrices used to reverse swizzling
@@ -204,6 +205,8 @@ void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, i
 						vec3 normal = encode_normal(bary.x * n0 + bary.y * n1 + bary.z * n2);
 
 						vec3 albedo = texture(albedo_map, uv).rgb;
+						// vec3 albedo = texture(albedo_map, uv).rgb * 0.00001 + vec3(0.0, 1.0, 0.0);
+
 						// vec3 normal = texture(normal_map, uv).rgb;
 						image_average_rgba8(u_voxel_albedo, ivec3(ps), albedo);
 						image_average_rgba8(u_voxel_normal, ivec3(ps), normal);
@@ -227,8 +230,7 @@ void main() {
 	mat3 swizzle;
 	swizzleTri(v0, v1, v2, n, swizzle);
 
-	// int classification = classifyTriPostSwizzle(v0, v1, v2, 0.2);
-	int classification = classifyTriPostSwizzle(v0, v1, v2, 50.5);
+	int classification = classifyTriPostSwizzle(v0, v1, v2, u_cutoff);
 
 	if(classification == LARGE) {
 		int index = int(atomicCounterIncrement(u_large_tri_count));
@@ -237,7 +239,7 @@ void main() {
 		imageStore(largeIdx, 3 * index + 1, uvec4(v_in[1].id));
 		imageStore(largeIdx, 3 * index + 2, uvec4(v_in[2].id));
 
-	} else if(classification == SMALL) {
+	} else {
 		vec3 AABBmin = min(min(v0, v1), v2);
 		vec3 AABBmax = max(max(v0, v1), v2);
 
