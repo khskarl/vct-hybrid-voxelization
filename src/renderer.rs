@@ -296,7 +296,6 @@ impl Renderer {
 				IndexKind::UnsignedInt,
 				0,
 			);
-			println!("count_vertices: {}", primitive.count_vertices());
 
 			unsafe {
 				use std::mem;

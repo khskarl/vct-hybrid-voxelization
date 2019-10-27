@@ -14,9 +14,9 @@ in VSOUT {
 
 uniform ivec3 u_resolution;
 
-layout(binding = 0, rgba8) uniform volatile coherent restrict image3D u_voxel_albedo;
-layout(binding = 1, rgba8) uniform volatile coherent restrict image3D u_voxel_normal;
-layout(binding = 2, rgba8) uniform volatile coherent restrict image3D u_voxel_emission;
+layout(binding = 0, r32ui) uniform volatile coherent restrict uimage3D u_voxel_albedo;
+layout(binding = 1, r32ui) uniform volatile coherent restrict uimage3D u_voxel_normal;
+layout(binding = 2, r32ui) uniform volatile coherent restrict uimage3D u_voxel_emission;
 layout(binding = 3, r32ui) uniform uimageBuffer largeIdx;
 layout(binding = 4, r32ui) uniform uimageBuffer largeIndirectElement;
 
@@ -204,13 +204,14 @@ void voxelizeTriPostSwizzle(vec3 v0, vec3 v1, vec3 v2, vec3 n, mat3 unswizzle, i
 						vec3 normal = encode_normal(bary.x * n0 + bary.y * n1 + bary.z * n2);
 
 						vec3 albedo = texture(albedo_map, uv).rgb;
-						imageStore(u_voxel_albedo, ivec3(ps), vec4(albedo, 1.0));
-						imageStore(u_voxel_normal, ivec3(ps), vec4(normal, 1.0));
+						// vec3 normal = texture(normal_map, uv).rgb;
+						image_average_rgba8(u_voxel_albedo, ivec3(ps), albedo);
+						image_average_rgba8(u_voxel_normal, ivec3(ps), normal);
 						vec3 emission = vec3(1.0) - normal.yyy;
 						if(emission.y < 0.9) {
 							emission.rgb = vec3(0.0);
 						}
-						imageStore(u_voxel_emission, ivec3(ps), vec4(emission * (vec3(ps / u_resolution)), 1.0));
+						image_average_rgba8(u_voxel_emission, ivec3(ps), emission * (ps / u_resolution));
 					}
 				}
 			}
