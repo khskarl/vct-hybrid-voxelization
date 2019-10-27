@@ -8,9 +8,7 @@ in VSOUT {
 	vec2 uv;
 } v_in[];
 
-uniform int u_width;
-uniform int u_height;
-uniform int u_depth;
+uniform ivec3 u_resolution;
 
 uniform mat4 pv;
 
@@ -48,14 +46,14 @@ void main() {
 	};
 
 	// Calculate clipping region
-	float pixel_diagonal = 1.4142135637309 / float(u_width);
+	float pixel_diagonal = 1.4142135637309 / float(u_resolution.x);
 	vec4 AABB;
 	AABB.xy = min(s_position[0].xy, min(s_position[1].xy, s_position[2].xy));
 	AABB.zw = max(s_position[0].xy, max(s_position[1].xy, s_position[2].xy));
 	AABB.xy -= vec2(pixel_diagonal);
 	AABB.zw += vec2(pixel_diagonal);
 
-	s_position = enlarge_triangle(s_position, ivec3(u_width));
+	s_position = enlarge_triangle(s_position, u_resolution);
 
 	for(int i = 0; i < 3; i++) {
 		gl_Position = s_position[i];

@@ -307,13 +307,8 @@ impl Renderer {
 				self.voxelize_program.bind();
 				self
 					.voxelize_program
-					.get_uniform("u_width")
-					.set_1i(resolution[0]);
-				// self.voxelize_program.get_uniform("u_height").set_1i(height);
-				self
-					.voxelize_program
-					.get_uniform("u_depth")
-					.set_1i(resolution[2]);
+					.get_uniform("u_resolution")
+					.set_3i(1, resolution);
 
 				let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 
@@ -372,13 +367,8 @@ impl Renderer {
 		self.voxelize_program.bind();
 		self
 			.voxelize_program
-			.get_uniform("u_width")
-			.set_1i(resolution[0]);
-		// self.voxelize_program.get_uniform("u_height").set_1i(height);
-		self
-			.voxelize_program
-			.get_uniform("u_depth")
-			.set_1i(resolution[2]);
+			.get_uniform("u_resolution")
+			.set_3i(1, resolution);
 
 		let pv: [f32; 16] = voxelization_pv(&self.volume_scene);
 

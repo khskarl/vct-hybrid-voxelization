@@ -10,10 +10,6 @@ out VSOUT {
 	vec2 uv;
 } v_out;
 
-uniform int u_width;
-uniform int u_height;
-uniform int u_depth;
-
 uniform mat4 pv;
 uniform mat4 model;
 
