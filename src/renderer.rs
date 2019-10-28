@@ -252,7 +252,7 @@ impl Renderer {
 	}
 
 	fn voxelize_hybrid(&mut self) {
-		self.timer.begin("voxelize_hybrid_triangle");
+		self.timer.begin("voxelize_hybrid");
 
 		let resolution = &self.volume_scene.resolution();
 
@@ -315,9 +315,7 @@ impl Renderer {
 				IndexKind::UnsignedInt,
 				0,
 			);
-			self.timer.end("voxelize_hybrid_triangle");
 
-			self.timer.begin("voxelize_hybrid_fragment");
 			unsafe {
 				use std::ptr;
 
@@ -346,7 +344,7 @@ impl Renderer {
 			}
 		}
 
-		self.timer.end("voxelize_hybrid_fragment");
+		self.timer.end("voxelize_hybrid");
 	}
 
 	fn voxelize_fragment(&mut self) {
