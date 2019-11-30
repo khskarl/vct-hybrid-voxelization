@@ -1,26 +1,8 @@
-# Potato - Yet Another Global Illumination But Ultimately Ugly
-Potato is an overly bootstrapped PBR renderer with a Voxel Cone Tracing implementation stuck inside of it, on in other words: held hostage by the dark powers of deadlines and ad-hoc improvised solutions.
+# Voxel Cone Tracing with Hybrid Voxelization
+This is an overly bootstrapped PBR renderer with a Voxel Cone Tracing implementation stuck inside of it due tight deadlines.
 
-This project is my thesis implementation, whose sole purpose is to compare two voxelization algorithms for achieving real-time GI through Cone Tracing.
-Initially this project was using Rendy for the rendering, but a combination of unforeseen life events and mismanagement led to a major rewrite and an even shorter deadline.
+That's also the implementation of my bachelor thesis, it is the comparison of two voxelization algorithms for Voxel Cone Tracing with and without native conservative rasterization. Those algorithms are the Per-Fragment Voxelization by [Crassin & Green](https://www.seas.upenn.edu/~pcozzi/OpenGLInsights/OpenGLInsights-SparseVoxelization.pdf) and Hybrid Voxelization by [Rauwendaal](http://jcgt.org/published/0002/01/02/paper-lowres.pdf)
 
-This project was completely rewritten in a monstrous combination of raw OpenGL and a random helper crate which lacked needed features. Intuitively the code is a mess, an even uglier mess than the overly appropriate project's name.
+This project was messily rewritten in a monstrous combination of raw OpenGL and a random helper crate which lacks necessary features. Intuitively the code is a mess, but this still works as an example implementation for Hybrid Voxelization, which relies heavily on OpenGL 4+ features, such as image load/store API, indirect rendering, atomic counters, atomic read/write to image buffers and on.
 
-```
-"This is the ugliest thing I have ever seen."
-                                                     - Yesterday's ugliest entity.
-```
-
-## Planned Features
-- [x] Voxelization by Crassin & Green
-- [ ] Voxelization by Rauwendaal
-- [ ] Diffuse GI!
-- [x] Major changes in the last second
-- [x] Tears
-- [x] Suffering
-- [x] Is this hope??
-- [x] Joy!
-
-## Hopefully-one-day Features
-- [ ] Throw it all away
-- [ ] Rewrite it all in Vulkan and with a more reasonable deadline
+Regarding results, it was concluded that the Hybrid Voxelization is faster than the Per-Fragment Voxelization, but the Per-Fragment algorithm becomes the fastest combination when combined with hardware support for conservative rasterization using the `GL_NV_conservative_raster` [extension](https://www.khronos.org/registry/OpenGL/extensions/NV/NV_conservative_raster.txt). That's probably due the two-call overhead present in the Hybrid approach in contrast to the Per-Fragment approach decreased overhead by not having to dilate triangles in the geometry shader.
